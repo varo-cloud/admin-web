@@ -53,7 +53,7 @@ function mapListItem(raw: ApiModelListItem): AdminModelListItem {
     provider: raw.provider,
     capabilities: raw.capabilities,
     active: raw.active,
-    isHot: raw.is_hot,
+    isHot: raw.is_hot ?? false,
     startingPriceUsd: raw.starting_price_usd,
     priceUnit: raw.price_unit,
     sortOrder: raw.sort_order,

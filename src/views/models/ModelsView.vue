@@ -88,7 +88,12 @@ const columns: DataTableColumns<AdminModelListItem> = [
     key: 'active',
     render: (r) => h(NTag, { type: r.active ? 'success' : 'default', size: 'small' }, () => (r.active ? '已上架' : '草稿')),
   },
-  { title: '热门', key: 'isHot', render: (r) => (r.isHot ? '🔥' : '—') },
+  {
+    title: '热门',
+    key: 'isHot',
+    render: (r) =>
+      r.isHot ? h(NTag, { type: 'warning', size: 'small' }, () => 'HOT') : '—',
+  },
   {
     title: '起价',
     key: 'startingPriceUsd',

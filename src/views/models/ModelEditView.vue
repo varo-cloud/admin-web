@@ -221,17 +221,19 @@ onBeforeRouteLeave((_to, _from, next) => {
             <NFormItem label="api_model_id *">
               <NInput v-model:value="form.apiModelId" @update:value="markDirty" />
             </NFormItem>
-            <NFormItem label="热门">
-              <NSwitch v-model:value="form.isHot" @update:value="markDirty" />
-            </NFormItem>
-            <NFormItem label="排序">
-              <NInputNumber v-model:value="form.sortOrder" @update:value="markDirty" />
-            </NFormItem>
-            <NFormItem label="上架">
-              <NSwitch v-model:value="form.active" @update:value="markDirty" />
-            </NFormItem>
           </NForm>
         </LocaleTabs>
+        <NForm label-placement="top" style="max-width: 640px; margin-top: 8px">
+          <NFormItem label="热门">
+            <NSwitch v-model:value="form.isHot" @update:value="markDirty" />
+          </NFormItem>
+          <NFormItem label="排序">
+            <NInputNumber v-model:value="form.sortOrder" @update:value="markDirty" />
+          </NFormItem>
+          <NFormItem label="上架">
+            <NSwitch v-model:value="form.active" @update:value="markDirty" />
+          </NFormItem>
+        </NForm>
       </NTabPane>
 
       <NTabPane name="pricing" tab="定价">

@@ -120,8 +120,8 @@ export default [
         target_type: 'model',
         target_id: modelId,
         reason: '模型更新',
-        before_snapshot: { active: prev.active },
-        after_snapshot: { active: mockStore.models[idx].active },
+        before_snapshot: { active: prev.active, is_hot: prev.is_hot },
+        after_snapshot: { active: mockStore.models[idx].active, is_hot: mockStore.models[idx].is_hot },
       })
       return success(mockStore.models[idx])
     },
