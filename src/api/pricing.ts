@@ -1,12 +1,13 @@
 import { http, unwrap } from './http'
 import type { PricingItem } from '@/types/admin'
 import type { PricingPriceUnit } from '@/types'
+import { localizedStringToPayload, mapApiLocalized } from '@/utils/locale'
 
 function mapItem(raw: Record<string, unknown>): PricingItem {
   return {
     id: String(raw.id),
     modelId: String(raw.model_id),
-    name: String(raw.name),
+    name: mapApiLocalized(raw.name),
     standardPriceUsd: Number(raw.standard_price_usd),
     startingPriceUsd: Number(raw.starting_price_usd),
     priceUnit: raw.price_unit as PricingPriceUnit,
@@ -14,6 +15,21 @@ function mapItem(raw: Record<string, unknown>): PricingItem {
     category: String(raw.category),
     mediaType: String(raw.media_type),
     sortOrder: Number(raw.sort_order),
+  }
+}
+
+export function pricingToPayload(item: Partial<PricingItem>): Record<string, unknown> {
+  return {
+    id: item.id,
+    model_id: item.modelId,
+    name: localizedStringToPayload(item.name),
+    standard_price_usd: item.standardPriceUsd,
+    starting_price_usd: item.startingPriceUsd,
+    price_unit: item.priceUnit,
+    discount_percent: item.discountPercent,
+    category: item.category,
+    media_type: item.mediaType,
+    sort_order: item.sortOrder,
   }
 }
 

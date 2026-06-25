@@ -1,11 +1,12 @@
 import { http, unwrap } from './http'
 import type { AdminModelDetail, AdminModelListItem, ModelsPage } from '@/types/admin'
-import type { ModelFaqItem, PricingPriceUnit } from '@/types'
+import type { LocalizedString, ModelFaqItem, PricingPriceUnit } from '@/types'
+import { localizedStringToPayload, mapApiLocalized } from '@/utils/locale'
 
 interface ApiModelListItem {
   id: string
-  name: string
-  display_name?: string
+  name: LocalizedString
+  display_name?: LocalizedString
   provider: string
   capabilities: string[]
   active: boolean
@@ -17,7 +18,7 @@ interface ApiModelListItem {
 }
 
 interface ApiModelDetail extends ApiModelListItem {
-  description: string
+  description: LocalizedString
   thumbnail_url?: string
   model_path: string
   api_model_id: string
@@ -27,16 +28,28 @@ interface ApiModelDetail extends ApiModelListItem {
   per_run_price_usd?: number
   runs_per_ten_usd?: number
   input_schema: Record<string, unknown>
-  readme_md?: string
-  faq: ModelFaqItem[]
+  readme_md?: LocalizedString
+  faq: ApiFaqItem[]
   created_at: number
+}
+
+interface ApiFaqItem {
+  question: LocalizedString
+  answer: LocalizedString
+}
+
+function mapFaqItem(raw: ApiFaqItem): ModelFaqItem {
+  return {
+    question: mapApiLocalized(raw.question),
+    answer: mapApiLocalized(raw.answer),
+  }
 }
 
 function mapListItem(raw: ApiModelListItem): AdminModelListItem {
   return {
     id: raw.id,
-    name: raw.name,
-    displayName: raw.display_name,
+    name: mapApiLocalized(raw.name),
+    displayName: raw.display_name ? mapApiLocalized(raw.display_name) : undefined,
     provider: raw.provider,
     capabilities: raw.capabilities,
     active: raw.active,
@@ -51,7 +64,7 @@ function mapListItem(raw: ApiModelListItem): AdminModelListItem {
 function mapDetail(raw: ApiModelDetail): AdminModelDetail {
   return {
     ...mapListItem(raw),
-    description: raw.description,
+    description: mapApiLocalized(raw.description),
     thumbnailUrl: raw.thumbnail_url,
     modelPath: raw.model_path,
     apiModelId: raw.api_model_id,
@@ -61,8 +74,8 @@ function mapDetail(raw: ApiModelDetail): AdminModelDetail {
     perRunPriceUsd: raw.per_run_price_usd,
     runsPerTenUsd: raw.runs_per_ten_usd,
     inputSchema: raw.input_schema,
-    readmeMd: raw.readme_md,
-    faq: raw.faq ?? [],
+    readmeMd: raw.readme_md ? mapApiLocalized(raw.readme_md) : undefined,
+    faq: (raw.faq ?? []).map(mapFaqItem),
     createdAt: raw.created_at,
   }
 }
@@ -107,11 +120,11 @@ export async function updateModelStatus(modelId: string, active: boolean) {
 export function modelToPayload(model: Partial<AdminModelDetail>): Record<string, unknown> {
   return {
     id: model.id,
-    name: model.name,
-    display_name: model.displayName,
+    name: localizedStringToPayload(model.name),
+    display_name: model.displayName ? localizedStringToPayload(model.displayName) : undefined,
     provider: model.provider,
     capabilities: model.capabilities,
-    description: model.description,
+    description: localizedStringToPayload(model.description),
     thumbnail_url: model.thumbnailUrl,
     model_path: model.modelPath,
     api_model_id: model.apiModelId,
@@ -126,7 +139,10 @@ export function modelToPayload(model: Partial<AdminModelDetail>): Record<string,
     per_run_price_usd: model.perRunPriceUsd,
     runs_per_ten_usd: model.runsPerTenUsd,
     input_schema: model.inputSchema,
-    readme_md: model.readmeMd,
-    faq: model.faq,
+    readme_md: model.readmeMd ? localizedStringToPayload(model.readmeMd) : undefined,
+    faq: model.faq?.map((item) => ({
+      question: localizedStringToPayload(item.question),
+      answer: localizedStringToPayload(item.answer),
+    })),
   }
 }

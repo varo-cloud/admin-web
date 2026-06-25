@@ -14,11 +14,11 @@ export interface MockUser {
 
 export interface MockModel {
   id: string
-  name: string
-  display_name?: string
+  name: { 'en-US': string; 'zh-CN'?: string }
+  display_name?: { 'en-US': string; 'zh-CN'?: string }
   provider: string
   capabilities: string[]
-  description: string
+  description: { 'en-US': string; 'zh-CN'?: string }
   thumbnail_url?: string
   model_path: string
   api_model_id: string
@@ -33,8 +33,8 @@ export interface MockModel {
   per_run_price_usd?: number
   runs_per_ten_usd?: number
   input_schema: Record<string, unknown>
-  readme_md?: string
-  faq: { question: string; answer: string }[]
+  readme_md?: { 'en-US': string; 'zh-CN'?: string }
+  faq: { question: { 'en-US': string; 'zh-CN'?: string }; answer: { 'en-US': string; 'zh-CN'?: string } }[]
   created_at: number
   updated_at: number
 }
@@ -161,11 +161,20 @@ export const mockStore = {
   models: [
     {
       id: 'seedance-t2v',
-      name: 'Seedance 2.0 Text-to-Video',
-      display_name: 'Seedance 2.0',
+      name: {
+        'en-US': 'Seedance 2.0 Text-to-Video',
+        'zh-CN': 'Seedance 2.0 文生视频',
+      },
+      display_name: {
+        'en-US': 'Seedance 2.0',
+        'zh-CN': 'Seedance 2.0',
+      },
       provider: 'ByteDance',
       capabilities: ['text-to-video'],
-      description: '高质量文生视频模型',
+      description: {
+        'en-US': 'Text-to-video generation model.',
+        'zh-CN': '高质量文生视频模型',
+      },
       thumbnail_url: 'https://picsum.photos/seed/seedance/400/225',
       model_path: 'bytedance/seedance-2.0/text-to-video',
       api_model_id: 'dreamina-seedance-2-0-260128',
@@ -187,18 +196,41 @@ export const mockStore = {
         },
         required: ['prompt'],
       },
-      readme_md: '## Seedance 2.0\n\n文生视频模型。',
-      faq: [{ question: '支持多长视频？', answer: '2-10 秒' }],
+      readme_md: {
+        'en-US': '## Seedance 2.0\n\nText-to-video model.',
+        'zh-CN': '## Seedance 2.0\n\n文生视频模型。',
+      },
+      faq: [
+        {
+          question: {
+            'en-US': 'How long can videos be?',
+            'zh-CN': '支持多长视频？',
+          },
+          answer: {
+            'en-US': '2-10 seconds',
+            'zh-CN': '2-10 秒',
+          },
+        },
+      ],
       created_at: daysAgo(60),
       updated_at: daysAgo(2),
     },
     {
       id: 'seedance-i2v',
-      name: 'Seedance 2.0 Image-to-Video',
-      display_name: 'Seedance I2V',
+      name: {
+        'en-US': 'Seedance 2.0 Image-to-Video',
+        'zh-CN': 'Seedance 2.0 图生视频',
+      },
+      display_name: {
+        'en-US': 'Seedance I2V',
+        'zh-CN': 'Seedance 图生视频',
+      },
       provider: 'ByteDance',
       capabilities: ['image-to-video'],
-      description: '图生视频模型',
+      description: {
+        'en-US': 'Image-to-video generation model.',
+        'zh-CN': '图生视频模型',
+      },
       model_path: 'bytedance/seedance-2.0/image-to-video',
       api_model_id: 'dreamina-seedance-i2v',
       active: false,
@@ -359,7 +391,10 @@ export const mockStore = {
     {
       id: 'veo-31-lite-i2v',
       model_id: 'seedance-i2v',
-      name: 'Seedance 2.0 Image-to-Video',
+      name: {
+        'en-US': 'Seedance 2.0 Image-to-Video',
+        'zh-CN': 'Seedance 2.0 图生视频',
+      },
       standard_price_usd: 0.1,
       starting_price_usd: 0.084,
       price_unit: 'per_second',

@@ -2,6 +2,16 @@ import type { MockMethod } from 'vite-plugin-mock'
 import { addAuditLog, mockStore } from './store'
 import { fail, paginate, pathParam, requireAdmin, success } from './_util'
 
+function localizedText(value: unknown): string {
+  if (!value) return ''
+  if (typeof value === 'string') return value
+  if (typeof value === 'object') {
+    const obj = value as Record<string, string>
+    return obj['en-US'] || obj['zh-CN'] || ''
+  }
+  return String(value)
+}
+
 export default [
   {
     url: '/api/admin/models',
@@ -15,7 +25,8 @@ export default [
         items = items.filter(
           (m) =>
             m.id.includes(q) ||
-            m.name.toLowerCase().includes(q) ||
+            localizedText(m.name).toLowerCase().includes(q) ||
+            localizedText(m.display_name).toLowerCase().includes(q) ||
             m.provider.toLowerCase().includes(q),
         )
       }
@@ -38,11 +49,11 @@ export default [
       const now = Date.now()
       const model = {
         id,
-        name: String(body.name ?? id),
-        display_name: body.display_name as string | undefined,
+        name: (body.name as Record<string, string>) ?? { 'en-US': id },
+        display_name: body.display_name as Record<string, string> | undefined,
         provider: String(body.provider ?? ''),
         capabilities: (body.capabilities as string[]) ?? [],
-        description: String(body.description ?? ''),
+        description: (body.description as Record<string, string>) ?? { 'en-US': '' },
         thumbnail_url: body.thumbnail_url as string | undefined,
         model_path: String(body.model_path ?? ''),
         api_model_id: String(body.api_model_id ?? ''),
@@ -57,12 +68,12 @@ export default [
         per_run_price_usd: body.per_run_price_usd as number | undefined,
         runs_per_ten_usd: body.runs_per_ten_usd as number | undefined,
         input_schema: (body.input_schema as Record<string, unknown>) ?? { type: 'object', properties: {} },
-        readme_md: body.readme_md as string | undefined,
-        faq: (body.faq as { question: string; answer: string }[]) ?? [],
+        readme_md: body.readme_md as Record<string, string> | undefined,
+        faq: (body.faq as { question: Record<string, string>; answer: Record<string, string> }[]) ?? [],
         created_at: now,
         updated_at: now,
       }
-      mockStore.models.push(model)
+      mockStore.models.push(model as (typeof mockStore.models)[number])
       return success(model)
     },
   },

@@ -2,6 +2,7 @@ import type {
   BalanceAdjustmentType,
   GenerationStatus,
   InvocationChannel,
+  LocalizedString,
   ModelFaqItem,
   Paginated,
   PricingPriceUnit,
@@ -98,8 +99,8 @@ export interface BalanceAdjustmentResult {
 
 export interface AdminModelListItem {
   id: string
-  name: string
-  displayName?: string
+  name: LocalizedString
+  displayName?: LocalizedString
   provider: string
   capabilities: string[]
   active: boolean
@@ -112,11 +113,11 @@ export interface AdminModelListItem {
 
 export interface AdminModelDetail {
   id: string
-  name: string
-  displayName?: string
+  name: LocalizedString
+  displayName?: LocalizedString
   provider: string
   capabilities: string[]
-  description: string
+  description: LocalizedString
   thumbnailUrl?: string
   modelPath: string
   apiModelId: string
@@ -131,7 +132,7 @@ export interface AdminModelDetail {
   perRunPriceUsd?: number
   runsPerTenUsd?: number
   inputSchema: Record<string, unknown>
-  readmeMd?: string
+  readmeMd?: LocalizedString
   faq: ModelFaqItem[]
   createdAt: number
   updatedAt: number
@@ -214,7 +215,7 @@ export interface AdminApiKeyListItem {
 export interface PricingItem {
   id: string
   modelId: string
-  name: string
+  name: LocalizedString
   standardPriceUsd: number
   startingPriceUsd: number
   priceUnit: PricingPriceUnit

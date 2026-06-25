@@ -14,6 +14,7 @@ import {
   useMessage,
 } from 'naive-ui'
 import JsonEditor from '@/components/JsonEditor.vue'
+import LocaleTabs from '@/components/LocaleTabs.vue'
 import {
   createModel,
   fetchModelDetail,
@@ -21,6 +22,8 @@ import {
   updateModel,
 } from '@/api/models'
 import type { AdminModelDetail } from '@/types/admin'
+import type { ContentLocale, ModelFaqItem } from '@/types'
+import { emptyLocalizedString, normalizeLocalizedString } from '@/utils/locale'
 
 const route = useRoute()
 const router = useRouter()
@@ -31,14 +34,16 @@ const modelId = computed(() => route.params.id as string | undefined)
 const saving = ref(false)
 const dirty = ref(false)
 const schemaJson = ref('{}')
+const basicLocale = ref<ContentLocale>('en-US')
+const docsLocale = ref<ContentLocale>('en-US')
 
 const form = ref<Partial<AdminModelDetail>>({
   id: '',
-  name: '',
-  displayName: '',
+  name: emptyLocalizedString(),
+  displayName: emptyLocalizedString(),
   provider: '',
   capabilities: [],
-  description: '',
+  description: emptyLocalizedString(),
   thumbnailUrl: '',
   modelPath: '',
   apiModelId: '',
@@ -53,12 +58,12 @@ const form = ref<Partial<AdminModelDetail>>({
   perRunPriceUsd: 0,
   runsPerTenUsd: 0,
   inputSchema: {},
-  readmeMd: '',
+  readmeMd: emptyLocalizedString(),
   faq: [],
 })
 
 const capInput = ref('')
-const faqItems = ref<{ question: string; answer: string }[]>([])
+const faqItems = ref<ModelFaqItem[]>([])
 
 const priceUnitOptions = [
   { label: 'per_second', value: 'per_second' },
@@ -71,12 +76,28 @@ function markDirty() {
   dirty.value = true
 }
 
+function ensureLocalizedFields() {
+  form.value.name = normalizeLocalizedString(form.value.name)
+  form.value.displayName = normalizeLocalizedString(form.value.displayName)
+  form.value.description = normalizeLocalizedString(form.value.description)
+  form.value.readmeMd = normalizeLocalizedString(form.value.readmeMd)
+}
+
 async function loadModel() {
   if (isNew.value) return
   const data = await fetchModelDetail(modelId.value!)
-  form.value = { ...data }
+  form.value = {
+    ...data,
+    name: normalizeLocalizedString(data.name),
+    displayName: normalizeLocalizedString(data.displayName),
+    description: normalizeLocalizedString(data.description),
+    readmeMd: normalizeLocalizedString(data.readmeMd),
+  }
   schemaJson.value = JSON.stringify(data.inputSchema ?? {}, null, 2)
-  faqItems.value = [...(data.faq ?? [])]
+  faqItems.value = (data.faq ?? []).map((item) => ({
+    question: normalizeLocalizedString(item.question),
+    answer: normalizeLocalizedString(item.answer),
+  }))
 }
 
 onMounted(async () => {
@@ -97,18 +118,36 @@ function addCap() {
 }
 
 function addFaq() {
-  faqItems.value.push({ question: '', answer: '' })
+  faqItems.value.push({ question: emptyLocalizedString(), answer: emptyLocalizedString() })
   markDirty()
 }
 
+function validateLocalizedFields(): boolean {
+  ensureLocalizedFields()
+  if (!form.value.name?.['en-US']?.trim()) {
+    message.error('请填写英文完整名称 (en-US)')
+    basicLocale.value = 'en-US'
+    return false
+  }
+  if (!form.value.description?.['en-US']?.trim()) {
+    message.error('请填写英文描述 (en-US)')
+    basicLocale.value = 'en-US'
+    return false
+  }
+  return true
+}
+
 async function save() {
+  if (!validateLocalizedFields()) return
+
   try {
     const parsed = JSON.parse(schemaJson.value || '{}')
     form.value.inputSchema = parsed
   } catch {
     return message.error('Input Schema JSON 无效')
   }
-  form.value.faq = faqItems.value.filter((f) => f.question.trim())
+
+  form.value.faq = faqItems.value.filter((f) => f.question['en-US']?.trim() || f.question['zh-CN']?.trim())
 
   saving.value = true
   try {
@@ -149,48 +188,50 @@ onBeforeRouteLeave((_to, _from, next) => {
 
     <NTabs type="line" @update:value="markDirty">
       <NTabPane name="basic" tab="基本信息">
-        <NForm label-placement="top" style="max-width: 640px">
-          <NFormItem label="ID *">
-            <NInput v-model:value="form.id" :disabled="!isNew" @update:value="markDirty" />
-          </NFormItem>
-          <NFormItem label="完整名称 *">
-            <NInput v-model:value="form.name" @update:value="markDirty" />
-          </NFormItem>
-          <NFormItem label="展示名称">
-            <NInput v-model:value="form.displayName" @update:value="markDirty" />
-          </NFormItem>
-          <NFormItem label="提供商 *">
-            <NInput v-model:value="form.provider" @update:value="markDirty" />
-          </NFormItem>
-          <NFormItem label="能力 *">
-            <div class="cap-row">
-              <NInput v-model:value="capInput" placeholder="如 text-to-video" @keyup.enter="addCap" />
-              <NButton @click="addCap">添加</NButton>
-            </div>
-            <div class="caps">{{ form.capabilities?.join(', ') }}</div>
-          </NFormItem>
-          <NFormItem label="描述 *">
-            <textarea v-model="form.description" class="textarea" rows="3" @input="markDirty" />
-          </NFormItem>
-          <NFormItem label="缩略图 URL">
-            <NInput v-model:value="form.thumbnailUrl" @update:value="markDirty" />
-          </NFormItem>
-          <NFormItem label="model_path *">
-            <NInput v-model:value="form.modelPath" @update:value="markDirty" />
-          </NFormItem>
-          <NFormItem label="api_model_id *">
-            <NInput v-model:value="form.apiModelId" @update:value="markDirty" />
-          </NFormItem>
-          <NFormItem label="热门">
-            <NSwitch v-model:value="form.isHot" @update:value="markDirty" />
-          </NFormItem>
-          <NFormItem label="排序">
-            <NInputNumber v-model:value="form.sortOrder" @update:value="markDirty" />
-          </NFormItem>
-          <NFormItem label="上架">
-            <NSwitch v-model:value="form.active" @update:value="markDirty" />
-          </NFormItem>
-        </NForm>
+        <LocaleTabs v-model:locale="basicLocale">
+          <NForm label-placement="top" style="max-width: 640px">
+            <NFormItem label="ID *">
+              <NInput v-model:value="form.id" :disabled="!isNew" @update:value="markDirty" />
+            </NFormItem>
+            <NFormItem :label="basicLocale === 'en-US' ? '完整名称 *' : '完整名称'">
+              <NInput v-model:value="form.name![basicLocale]" @update:value="markDirty" />
+            </NFormItem>
+            <NFormItem label="展示名称">
+              <NInput v-model:value="form.displayName![basicLocale]" @update:value="markDirty" />
+            </NFormItem>
+            <NFormItem label="提供商 *">
+              <NInput v-model:value="form.provider" @update:value="markDirty" />
+            </NFormItem>
+            <NFormItem label="能力 *">
+              <div class="cap-row">
+                <NInput v-model:value="capInput" placeholder="如 text-to-video" @keyup.enter="addCap" />
+                <NButton @click="addCap">添加</NButton>
+              </div>
+              <div class="caps">{{ form.capabilities?.join(', ') }}</div>
+            </NFormItem>
+            <NFormItem :label="basicLocale === 'en-US' ? '描述 *' : '描述'">
+              <textarea v-model="form.description![basicLocale]" class="textarea" rows="3" @input="markDirty" />
+            </NFormItem>
+            <NFormItem label="缩略图 URL">
+              <NInput v-model:value="form.thumbnailUrl" @update:value="markDirty" />
+            </NFormItem>
+            <NFormItem label="model_path *">
+              <NInput v-model:value="form.modelPath" @update:value="markDirty" />
+            </NFormItem>
+            <NFormItem label="api_model_id *">
+              <NInput v-model:value="form.apiModelId" @update:value="markDirty" />
+            </NFormItem>
+            <NFormItem label="热门">
+              <NSwitch v-model:value="form.isHot" @update:value="markDirty" />
+            </NFormItem>
+            <NFormItem label="排序">
+              <NInputNumber v-model:value="form.sortOrder" @update:value="markDirty" />
+            </NFormItem>
+            <NFormItem label="上架">
+              <NSwitch v-model:value="form.active" @update:value="markDirty" />
+            </NFormItem>
+          </NForm>
+        </LocaleTabs>
       </NTabPane>
 
       <NTabPane name="pricing" tab="定价">
@@ -228,14 +269,26 @@ onBeforeRouteLeave((_to, _from, next) => {
       </NTabPane>
 
       <NTabPane name="docs" tab="文档 FAQ">
-        <NFormItem label="readme_md">
-          <textarea v-model="form.readmeMd" class="textarea" rows="8" @input="markDirty" />
-        </NFormItem>
-        <NButton size="small" @click="addFaq">添加 FAQ</NButton>
-        <div v-for="(item, i) in faqItems" :key="i" class="faq-item">
-          <NInput v-model:value="item.question" placeholder="问题" @update:value="markDirty" />
-          <textarea v-model="item.answer" class="textarea" rows="2" placeholder="回答" @input="markDirty" />
-        </div>
+        <LocaleTabs v-model:locale="docsLocale">
+          <NFormItem label="readme_md">
+            <textarea v-model="form.readmeMd![docsLocale]" class="textarea" rows="8" @input="markDirty" />
+          </NFormItem>
+          <NButton size="small" @click="addFaq">添加 FAQ</NButton>
+          <div v-for="(item, i) in faqItems" :key="i" class="faq-item">
+            <NInput
+              v-model:value="item.question[docsLocale]"
+              placeholder="问题"
+              @update:value="markDirty"
+            />
+            <textarea
+              v-model="item.answer[docsLocale]"
+              class="textarea"
+              rows="2"
+              placeholder="回答"
+              @input="markDirty"
+            />
+          </div>
+        </LocaleTabs>
       </NTabPane>
     </NTabs>
   </div>

@@ -38,7 +38,11 @@ export type InvocationChannel = 'web' | 'api'
 export type TransactionStatus = 'pending' | 'completed' | 'failed' | 'expired'
 export type BalanceAdjustmentType = 'manual_topup' | 'bonus' | 'refund' | 'correction'
 
+export type ContentLocale = 'en-US' | 'zh-CN'
+
+export type LocalizedString = Partial<Record<ContentLocale, string>>
+
 export interface ModelFaqItem {
-  question: string
-  answer: string
+  question: LocalizedString
+  answer: LocalizedString
 }

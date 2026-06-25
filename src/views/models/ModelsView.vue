@@ -19,6 +19,7 @@ import { formatUsd, formatPriceUnit } from '@/utils/currency'
 import { formatTimestamp } from '@/utils/time'
 import CopyText from '@/components/CopyText.vue'
 import type { AdminModelListItem } from '@/types/admin'
+import { resolveLocalizedString } from '@/utils/locale'
 
 const router = useRouter()
 const message = useMessage()
@@ -59,7 +60,7 @@ function toggleStatus(row: AdminModelListItem, active: boolean) {
   const content = active ? undefined : '下架后用户端不可见，进行中任务不受影响'
   dialog.warning({
     title: `${action}模型`,
-    content: content ?? `确认${action} ${row.displayName || row.name}？`,
+    content: content ?? `确认${action} ${resolveLocalizedString(row.displayName) || resolveLocalizedString(row.name)}？`,
     positiveText: '确认',
     onPositiveClick: async () => {
       try {
@@ -75,7 +76,7 @@ function toggleStatus(row: AdminModelListItem, active: boolean) {
 
 const columns: DataTableColumns<AdminModelListItem> = [
   { title: 'ID', key: 'id', render: (r) => h(CopyText, { text: r.id }) },
-  { title: '名称', key: 'name', render: (r) => r.displayName || r.name },
+  { title: '名称', key: 'name', render: (r) => resolveLocalizedString(r.displayName) || resolveLocalizedString(r.name) },
   { title: '提供商', key: 'provider' },
   {
     title: '能力',
