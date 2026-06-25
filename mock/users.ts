@@ -1,6 +1,6 @@
 import type { MockMethod } from 'vite-plugin-mock'
 import { addAuditLog, mockStore } from './store'
-import { fail, paginate, requireAdmin, success } from './_util'
+import { fail, paginate, pathParam, requireAdmin, success } from './_util'
 
 export default [
   {
@@ -58,10 +58,10 @@ export default [
   {
     url: /\/api\/admin\/users\/([^/]+)$/,
     method: 'get',
-    response: ({ headers }: { headers: Record<string, string> }, req: { url: string }) => {
+    response: ({ headers, url }: { headers: Record<string, string>; url: string }) => {
       const auth = requireAdmin(headers)
       if (!auth.ok) return auth.response
-      const userId = req.url.match(/\/users\/([^/?]+)/)?.[1]
+      const userId = pathParam(url, /\/users\/([^/?]+)$/)
       const user = mockStore.users.find((u) => u.id === userId)
       if (!user) return fail('用户不存在', 404)
       const keys = mockStore.apiKeys.filter((k) => k.user_id === userId)
@@ -95,13 +95,18 @@ export default [
   {
     url: /\/api\/admin\/users\/([^/]+)\/balance-adjustment$/,
     method: 'post',
-    response: (
-      { body, headers }: { body: Record<string, unknown>; headers: Record<string, string> },
-      req: { url: string },
-    ) => {
+    response: ({
+      body,
+      headers,
+      url,
+    }: {
+      body: Record<string, unknown>
+      headers: Record<string, string>
+      url: string
+    }) => {
       const auth = requireAdmin(headers)
       if (!auth.ok) return auth.response
-      const userId = req.url.match(/\/users\/([^/]+)\/balance/)?.[1]
+      const userId = pathParam(url, /\/users\/([^/]+)\/balance/)
       const user = mockStore.users.find((u) => u.id === userId)
       if (!user) return fail('用户不存在', 404)
 
@@ -143,13 +148,18 @@ export default [
   {
     url: /\/api\/admin\/users\/([^/]+)$/,
     method: 'patch',
-    response: (
-      { body, headers }: { body: { status?: string }; headers: Record<string, string> },
-      req: { url: string },
-    ) => {
+    response: ({
+      body,
+      headers,
+      url,
+    }: {
+      body: { status?: string }
+      headers: Record<string, string>
+      url: string
+    }) => {
       const auth = requireAdmin(headers)
       if (!auth.ok) return auth.response
-      const userId = req.url.match(/\/users\/([^/?]+)/)?.[1]
+      const userId = pathParam(url, /\/users\/([^/?]+)$/)
       const user = mockStore.users.find((u) => u.id === userId)
       if (!user) return fail('用户不存在', 404)
       if (body.status === 'suspended' || body.status === 'active') {
@@ -161,10 +171,10 @@ export default [
   {
     url: /\/api\/admin\/users\/([^/]+)\/billing\/transactions$/,
     method: 'get',
-    response: ({ headers }: { headers: Record<string, string> }, req: { url: string }) => {
+    response: ({ headers, url }: { headers: Record<string, string>; url: string }) => {
       const auth = requireAdmin(headers)
       if (!auth.ok) return auth.response
-      const userId = req.url.match(/\/users\/([^/]+)\/billing/)?.[1]
+      const userId = pathParam(url, /\/users\/([^/]+)\/billing/)
       const items = mockStore.transactions.filter((t) => t.user_id === userId)
       return success(paginate(items, 0, 20))
     },
@@ -172,10 +182,10 @@ export default [
   {
     url: /\/api\/admin\/users\/([^/]+)\/billing\/records$/,
     method: 'get',
-    response: ({ headers }: { headers: Record<string, string> }, req: { url: string }) => {
+    response: ({ headers, url }: { headers: Record<string, string>; url: string }) => {
       const auth = requireAdmin(headers)
       if (!auth.ok) return auth.response
-      const userId = req.url.match(/\/users\/([^/]+)\/billing/)?.[1]
+      const userId = pathParam(url, /\/users\/([^/]+)\/billing/)
       const items = mockStore.billingRecords[userId ?? ''] ?? []
       return success(paginate(items, 0, 20))
     },
@@ -183,10 +193,10 @@ export default [
   {
     url: /\/api\/admin\/users\/([^/]+)\/generations$/,
     method: 'get',
-    response: ({ headers }: { headers: Record<string, string> }, req: { url: string }) => {
+    response: ({ headers, url }: { headers: Record<string, string>; url: string }) => {
       const auth = requireAdmin(headers)
       if (!auth.ok) return auth.response
-      const userId = req.url.match(/\/users\/([^/]+)\/generations/)?.[1]
+      const userId = pathParam(url, /\/users\/([^/]+)\/generations/)
       const items = mockStore.generations.filter((g) => g.user_id === userId)
       return success(paginate(items, 0, 20))
     },

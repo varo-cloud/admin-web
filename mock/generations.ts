@@ -1,6 +1,6 @@
 import type { MockMethod } from 'vite-plugin-mock'
 import { addAuditLog, mockStore } from './store'
-import { fail, paginate, requireAdmin, success } from './_util'
+import { fail, paginate, pathParam, requireAdmin, success } from './_util'
 
 export default [
   {
@@ -27,10 +27,10 @@ export default [
   {
     url: /\/api\/admin\/generations\/([^/]+)$/,
     method: 'get',
-    response: ({ headers }: { headers: Record<string, string> }, req: { url: string }) => {
+    response: ({ headers, url }: { headers: Record<string, string>; url: string }) => {
       const auth = requireAdmin(headers)
       if (!auth.ok) return auth.response
-      const taskId = decodeURIComponent(req.url.match(/\/generations\/([^/?]+)/)?.[1] ?? '')
+      const taskId = decodeURIComponent(pathParam(url, /\/generations\/([^/?]+)$/) ?? '')
       const gen = mockStore.generations.find((g) => g.task_id === taskId)
       if (!gen) return fail('任务不存在', 404)
       return success(gen)
@@ -39,13 +39,18 @@ export default [
   {
     url: /\/api\/admin\/generations\/([^/]+)\/refund$/,
     method: 'post',
-    response: (
-      { body, headers }: { body: { reason?: string }; headers: Record<string, string> },
-      req: { url: string },
-    ) => {
+    response: ({
+      body,
+      headers,
+      url,
+    }: {
+      body: { reason?: string }
+      headers: Record<string, string>
+      url: string
+    }) => {
       const auth = requireAdmin(headers)
       if (!auth.ok) return auth.response
-      const taskId = decodeURIComponent(req.url.match(/\/generations\/([^/]+)\/refund/)?.[1] ?? '')
+      const taskId = decodeURIComponent(pathParam(url, /\/generations\/([^/]+)\/refund/) ?? '')
       const gen = mockStore.generations.find((g) => g.task_id === taskId)
       if (!gen) return fail('任务不存在', 404)
       if (gen.refunded) return fail('该任务已退款', 409)

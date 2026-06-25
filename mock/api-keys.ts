@@ -1,6 +1,6 @@
 import type { MockMethod } from 'vite-plugin-mock'
 import { addAuditLog, mockStore } from './store'
-import { fail, paginate, requireAdmin, success } from './_util'
+import { fail, paginate, pathParam, requireAdmin, success } from './_util'
 
 export default [
   {
@@ -29,10 +29,10 @@ export default [
   {
     url: /\/api\/admin\/api-keys\/([^/]+)$/,
     method: 'delete',
-    response: ({ headers }: { headers: Record<string, string> }, req: { url: string }) => {
+    response: ({ headers, url }: { headers: Record<string, string>; url: string }) => {
       const auth = requireAdmin(headers)
       if (!auth.ok) return auth.response
-      const keyId = req.url.match(/\/api-keys\/([^/?]+)/)?.[1]
+      const keyId = pathParam(url, /\/api-keys\/([^/?]+)/)
       const key = mockStore.apiKeys.find((k) => k.id === keyId)
       if (!key) return fail('API Key 不存在', 404)
       key.is_active = false

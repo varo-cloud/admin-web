@@ -1,6 +1,6 @@
 import type { MockMethod } from 'vite-plugin-mock'
 import { addAuditLog, mockStore } from './store'
-import { fail, paginate, requireAdmin, success } from './_util'
+import { fail, paginate, pathParam, requireAdmin, success } from './_util'
 
 export default [
   {
@@ -69,10 +69,10 @@ export default [
   {
     url: /\/api\/admin\/models\/([^/]+)$/,
     method: 'get',
-    response: ({ headers }: { headers: Record<string, string> }, req: { url: string }) => {
+    response: ({ headers, url }: { headers: Record<string, string>; url: string }) => {
       const auth = requireAdmin(headers)
       if (!auth.ok) return auth.response
-      const modelId = decodeURIComponent(req.url.match(/\/models\/([^/?]+)/)?.[1] ?? '')
+      const modelId = decodeURIComponent(pathParam(url, /\/models\/([^/?]+)$/) ?? '')
       const model = mockStore.models.find((m) => m.id === modelId)
       if (!model) return fail('模型不存在', 404)
       return success(model)
@@ -81,13 +81,18 @@ export default [
   {
     url: /\/api\/admin\/models\/([^/]+)$/,
     method: 'put',
-    response: (
-      { body, headers }: { body: Record<string, unknown>; headers: Record<string, string> },
-      req: { url: string },
-    ) => {
+    response: ({
+      body,
+      headers,
+      url,
+    }: {
+      body: Record<string, unknown>
+      headers: Record<string, string>
+      url: string
+    }) => {
       const auth = requireAdmin(headers)
       if (!auth.ok) return auth.response
-      const modelId = decodeURIComponent(req.url.match(/\/models\/([^/?]+)/)?.[1] ?? '')
+      const modelId = decodeURIComponent(pathParam(url, /\/models\/([^/?]+)$/) ?? '')
       const idx = mockStore.models.findIndex((m) => m.id === modelId)
       if (idx < 0) return fail('模型不存在', 404)
       const prev = mockStore.models[idx]
@@ -113,13 +118,18 @@ export default [
   {
     url: /\/api\/admin\/models\/([^/]+)\/status$/,
     method: 'patch',
-    response: (
-      { body, headers }: { body: { active?: boolean }; headers: Record<string, string> },
-      req: { url: string },
-    ) => {
+    response: ({
+      body,
+      headers,
+      url,
+    }: {
+      body: { active?: boolean }
+      headers: Record<string, string>
+      url: string
+    }) => {
       const auth = requireAdmin(headers)
       if (!auth.ok) return auth.response
-      const modelId = decodeURIComponent(req.url.match(/\/models\/([^/]+)\/status/)?.[1] ?? '')
+      const modelId = decodeURIComponent(pathParam(url, /\/models\/([^/]+)\/status/) ?? '')
       const model = mockStore.models.find((m) => m.id === modelId)
       if (!model) return fail('模型不存在', 404)
       model.active = Boolean(body.active)

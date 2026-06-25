@@ -1,6 +1,6 @@
 import type { MockMethod } from 'vite-plugin-mock'
 import { mockStore } from './store'
-import { fail, requireAdmin, success } from './_util'
+import { fail, pathParam, requireAdmin, success } from './_util'
 
 export default [
   {
@@ -26,13 +26,18 @@ export default [
   {
     url: /\/api\/admin\/pricing\/([^/]+)$/,
     method: 'put',
-    response: (
-      { body, headers }: { body: Record<string, unknown>; headers: Record<string, string> },
-      req: { url: string },
-    ) => {
+    response: ({
+      body,
+      headers,
+      url,
+    }: {
+      body: Record<string, unknown>
+      headers: Record<string, string>
+      url: string
+    }) => {
       const auth = requireAdmin(headers)
       if (!auth.ok) return auth.response
-      const id = req.url.match(/\/pricing\/([^/?]+)/)?.[1]
+      const id = pathParam(url, /\/pricing\/([^/?]+)/)
       const idx = mockStore.pricing.findIndex((p) => p.id === id)
       if (idx < 0) return fail('定价条目不存在', 404)
       mockStore.pricing[idx] = { ...mockStore.pricing[idx], ...body, id: id! }
@@ -42,10 +47,10 @@ export default [
   {
     url: /\/api\/admin\/pricing\/([^/]+)$/,
     method: 'delete',
-    response: ({ headers }: { headers: Record<string, string> }, req: { url: string }) => {
+    response: ({ headers, url }: { headers: Record<string, string>; url: string }) => {
       const auth = requireAdmin(headers)
       if (!auth.ok) return auth.response
-      const id = req.url.match(/\/pricing\/([^/?]+)/)?.[1]
+      const id = pathParam(url, /\/pricing\/([^/?]+)/)
       const idx = mockStore.pricing.findIndex((p) => p.id === id)
       if (idx < 0) return fail('定价条目不存在', 404)
       mockStore.pricing.splice(idx, 1)

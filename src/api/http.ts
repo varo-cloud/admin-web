@@ -23,9 +23,10 @@ async function tryRefreshAccessToken(): Promise<string | null> {
   if (!refreshPromise) {
     refreshPromise = (async () => {
       try {
-        const { data } = await axios.post<ApiResponse<TokenPair>>('/api/auth/refresh', {
-          refresh_token: refreshToken,
-        })
+        const { data } = await axios.post<ApiResponse<TokenPair>>(
+          `${apiBaseUrl()}/api/auth/refresh`,
+          { refresh_token: refreshToken },
+        )
         if (data.code !== 0 || !data.data) throw new Error(data.message)
         setToken(data.data.access_token)
         setRefreshToken(data.data.refresh_token)

@@ -32,3 +32,7 @@ export function requireAdmin(headers: Record<string, string>) {
 }
 
 export { ADMIN_EMAIL } from './store'
+
+export function pathParam(url: string, pattern: RegExp): string | undefined {
+  return url.split('?')[0]?.match(pattern)?.[1]
+}

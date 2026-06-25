@@ -1,6 +1,6 @@
 import type { MockMethod } from 'vite-plugin-mock'
 import { mockStore } from './store'
-import { fail, paginate, requireAdmin, success } from './_util'
+import { requireAdmin, success } from './_util'
 
 function buildTrend(range: string) {
   const days = range === '24h' ? 1 : range === '30d' ? 30 : 7
