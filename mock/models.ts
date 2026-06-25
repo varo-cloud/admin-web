@@ -59,6 +59,7 @@ export default [
         api_model_id: String(body.api_model_id ?? ''),
         active: false,
         is_hot: Boolean(body.is_hot),
+        is_new: Boolean(body.is_new),
         sort_order: Number(body.sort_order) || 100,
         starting_price_usd: Number(body.starting_price_usd) || 0,
         standard_price_usd: body.standard_price_usd as number | undefined,
@@ -120,8 +121,12 @@ export default [
         target_type: 'model',
         target_id: modelId,
         reason: '模型更新',
-        before_snapshot: { active: prev.active, is_hot: prev.is_hot },
-        after_snapshot: { active: mockStore.models[idx].active, is_hot: mockStore.models[idx].is_hot },
+        before_snapshot: { active: prev.active, is_hot: prev.is_hot, is_new: prev.is_new },
+        after_snapshot: {
+          active: mockStore.models[idx].active,
+          is_hot: mockStore.models[idx].is_hot,
+          is_new: mockStore.models[idx].is_new,
+        },
       })
       return success(mockStore.models[idx])
     },

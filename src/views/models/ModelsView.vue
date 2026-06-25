@@ -95,6 +95,12 @@ const columns: DataTableColumns<AdminModelListItem> = [
       r.isHot ? h(NTag, { type: 'warning', size: 'small' }, () => 'HOT') : '—',
   },
   {
+    title: '新品',
+    key: 'isNew',
+    render: (r) =>
+      r.isNew ? h(NTag, { type: 'info', size: 'small' }, () => 'NEW') : '—',
+  },
+  {
     title: '起价',
     key: 'startingPriceUsd',
     render: (r) => `${formatUsd(r.startingPriceUsd)}${formatPriceUnit(r.priceUnit)}`,

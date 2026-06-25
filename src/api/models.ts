@@ -11,6 +11,7 @@ interface ApiModelListItem {
   capabilities: string[]
   active: boolean
   is_hot: boolean
+  is_new: boolean
   starting_price_usd: number
   price_unit: PricingPriceUnit
   sort_order: number
@@ -54,6 +55,7 @@ function mapListItem(raw: ApiModelListItem): AdminModelListItem {
     capabilities: raw.capabilities,
     active: raw.active,
     isHot: raw.is_hot ?? false,
+    isNew: raw.is_new ?? false,
     startingPriceUsd: raw.starting_price_usd,
     priceUnit: raw.price_unit,
     sortOrder: raw.sort_order,
@@ -130,6 +132,7 @@ export function modelToPayload(model: Partial<AdminModelDetail>): Record<string,
     api_model_id: model.apiModelId,
     active: model.active,
     is_hot: model.isHot,
+    is_new: model.isNew,
     sort_order: model.sortOrder,
     starting_price_usd: model.startingPriceUsd,
     standard_price_usd: model.standardPriceUsd,

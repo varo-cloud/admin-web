@@ -105,6 +105,7 @@ export interface AdminModelListItem {
   capabilities: string[]
   active: boolean
   isHot: boolean
+  isNew: boolean
   startingPriceUsd: number
   priceUnit: PricingPriceUnit
   sortOrder: number
@@ -123,6 +124,7 @@ export interface AdminModelDetail {
   apiModelId: string
   active: boolean
   isHot: boolean
+  isNew: boolean
   sortOrder: number
   startingPriceUsd: number
   standardPriceUsd?: number

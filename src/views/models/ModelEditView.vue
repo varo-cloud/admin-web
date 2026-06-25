@@ -49,6 +49,7 @@ const form = ref<Partial<AdminModelDetail>>({
   apiModelId: '',
   active: false,
   isHot: false,
+  isNew: false,
   sortOrder: 100,
   startingPriceUsd: 0,
   standardPriceUsd: 0,
@@ -226,6 +227,9 @@ onBeforeRouteLeave((_to, _from, next) => {
         <NForm label-placement="top" style="max-width: 640px; margin-top: 8px">
           <NFormItem label="热门">
             <NSwitch v-model:value="form.isHot" @update:value="markDirty" />
+          </NFormItem>
+          <NFormItem label="新品">
+            <NSwitch v-model:value="form.isNew" @update:value="markDirty" />
           </NFormItem>
           <NFormItem label="排序">
             <NInputNumber v-model:value="form.sortOrder" @update:value="markDirty" />

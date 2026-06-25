@@ -24,6 +24,7 @@ export interface MockModel {
   api_model_id: string
   active: boolean
   is_hot: boolean
+  is_new: boolean
   sort_order: number
   starting_price_usd: number
   standard_price_usd?: number
@@ -180,6 +181,7 @@ export const mockStore = {
       api_model_id: 'dreamina-seedance-2-0-260128',
       active: true,
       is_hot: true,
+      is_new: false,
       sort_order: 10,
       starting_price_usd: 0.072,
       standard_price_usd: 0.09,
@@ -235,6 +237,7 @@ export const mockStore = {
       api_model_id: 'dreamina-seedance-i2v',
       active: false,
       is_hot: false,
+      is_new: true,
       sort_order: 20,
       starting_price_usd: 0.084,
       standard_price_usd: 0.1,
