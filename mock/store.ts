@@ -451,6 +451,72 @@ export const mockStore = {
   } as Record<string, { id: string; style: string; detail: string; amount_usd: number; created_at: number }[]>,
 
   idempotencyKeys: new Map<string, unknown>(),
+
+  heroCarousel: {
+    slide_duration_ms: 5000,
+    autoplay_enabled: true,
+    muted: true,
+    default_title: {
+      'en-US': 'The AI Model Cloud for Creator',
+      'zh-CN': 'The AI Model Cloud for Creator',
+    },
+    default_subtitle: {
+      'en-US':
+        'Access leading video, image, audio, and language models through one unified API—with better pricing and reliable performance.',
+      'zh-CN': '通过统一 API 接入领先的视频、图像、音频与语言模型——更优价格与稳定性能。',
+    },
+    slides: [
+      {
+        id: 'hero-slide-2',
+        sort_order: 0,
+        active: true,
+        video_url: 'https://cdn.varo.cloud/assets/cover/2.mp4',
+        poster_url: 'https://cdn.varo.cloud/assets/cover/2.jpg',
+        title: {
+          'en-US': 'The AI Model Cloud for Creator',
+          'zh-CN': 'The AI Model Cloud for Creator',
+        },
+        subtitle: {
+          'en-US':
+            'Access leading video, image, audio, and language models through one unified API—with better pricing and reliable performance.',
+          'zh-CN': '通过统一 API 接入领先的视频、图像、音频与语言模型——更优价格与稳定性能。',
+        },
+        created_at: daysAgo(30),
+        updated_at: daysAgo(30),
+      },
+      {
+        id: 'hero-slide-3',
+        sort_order: 1,
+        active: true,
+        video_url: 'https://cdn.varo.cloud/assets/cover/3.mp4',
+        poster_url: 'https://cdn.varo.cloud/assets/cover/3.jpg',
+        title: {
+          'en-US': 'Seedance 2.5 Coming Soon',
+          'zh-CN': 'Seedance 2.5 即将上线',
+        },
+        subtitle: {
+          'en-US':
+            'Seedance 2.5 arrives in Early July with 30-second single-shot videos, expanded reference capacity, tighter generation and editing control, and support for up to 50 reference files.',
+          'zh-CN':
+            'Seedance 2.5 将于 7 月初上线，支持 30 秒单镜头视频、扩展参考素材容量、更精细的生成与编辑控制，以及最多 50 个参考文件。',
+        },
+        created_at: daysAgo(30),
+        updated_at: daysAgo(30),
+      },
+      {
+        id: 'hero-slide-4',
+        sort_order: 2,
+        active: true,
+        video_url: 'https://cdn.varo.cloud/assets/cover/4.mp4',
+        poster_url: 'https://cdn.varo.cloud/assets/cover/4.jpg',
+        title: null,
+        subtitle: null,
+        created_at: daysAgo(30),
+        updated_at: daysAgo(30),
+      },
+    ],
+    updated_at: daysAgo(2),
+  },
 }
 
 export function addAuditLog(entry: Omit<MockAuditLog, 'id' | 'created_at'>) {

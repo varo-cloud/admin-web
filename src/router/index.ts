@@ -36,6 +36,11 @@ const routes: RouteRecordRaw[] = [
       },
       { path: 'api-keys', name: 'api-keys', component: () => import('@/views/api-keys/ApiKeysView.vue') },
       { path: 'pricing', name: 'pricing', component: () => import('@/views/pricing/PricingView.vue') },
+      {
+        path: 'content/hero-carousel',
+        name: 'hero-carousel',
+        component: () => import('@/views/content/HeroCarouselView.vue'),
+      },
       { path: 'settings', name: 'settings', component: () => import('@/views/settings/SettingsView.vue') },
       { path: 'audit-logs', name: 'audit-logs', component: () => import('@/views/audit-logs/AuditLogsView.vue') },
     ],

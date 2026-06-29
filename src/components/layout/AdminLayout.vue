@@ -21,6 +21,7 @@ import {
   PricetagOutline,
   SettingsOutline,
   DocumentTextOutline,
+  VideocamOutline,
 } from '@vicons/ionicons5'
 import { useAuthStore } from '@/stores/auth'
 import { NIcon } from 'naive-ui'
@@ -41,6 +42,7 @@ const menuOptions: MenuOption[] = [
   { label: '充值订单', key: '/billing/transactions', icon: renderIcon(CardOutline) },
   { label: 'API Keys', key: '/api-keys', icon: renderIcon(KeyOutline) },
   { label: '定价', key: '/pricing', icon: renderIcon(PricetagOutline) },
+  { label: 'Hero 轮播', key: '/content/hero-carousel', icon: renderIcon(VideocamOutline) },
   { label: '系统配置', key: '/settings', icon: renderIcon(SettingsOutline) },
   { label: '审计日志', key: '/audit-logs', icon: renderIcon(DocumentTextOutline) },
 ]
@@ -51,6 +53,7 @@ const activeKey = computed(() => {
   if (path.startsWith('/models')) return '/models'
   if (path.startsWith('/generations')) return '/generations'
   if (path.startsWith('/billing')) return '/billing/transactions'
+  if (path.startsWith('/content')) return path
   return path
 })
 

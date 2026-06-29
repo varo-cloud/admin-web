@@ -263,3 +263,32 @@ export type GenerationsPage = Paginated<AdminGenerationListItem>
 export type TransactionsPage = Paginated<BillingTransaction>
 export type ApiKeysPage = Paginated<AdminApiKeyListItem>
 export type AuditLogsPage = Paginated<AuditLog>
+
+export interface HeroCarouselSlide {
+  id: string
+  sortOrder: number
+  active: boolean
+  videoUrl: string
+  posterUrl: string
+  title?: LocalizedString
+  subtitle?: LocalizedString
+  createdAt: number
+  updatedAt: number
+}
+
+export interface HeroCarouselConfig {
+  slideDurationMs: number
+  autoplayEnabled: boolean
+  muted: boolean
+  defaultTitle: LocalizedString
+  defaultSubtitle: LocalizedString
+  slides: HeroCarouselSlide[]
+  updatedAt: number
+}
+
+export interface HeroCarouselAssetUpload {
+  url: string
+  kind: 'video' | 'poster'
+  contentType: string
+  sizeBytes: number
+}
