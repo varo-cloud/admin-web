@@ -78,6 +78,16 @@ export interface MockTransaction {
   completed_at: number | null
 }
 
+export interface MockBillingPackage {
+  id: string
+  price_usd: number
+  label: { 'en-US'?: string; 'zh-CN'?: string } | null
+  sort_order: number
+  active: boolean
+  created_at: number
+  updated_at: number
+}
+
 export interface MockApiKey {
   id: string
   user_id: string
@@ -350,6 +360,36 @@ export const mockStore = {
       completed_at: null,
     },
   ] as MockTransaction[],
+
+  billingPackages: [
+    {
+      id: 'starter',
+      price_usd: 10,
+      label: { 'en-US': 'Starter', 'zh-CN': '入门档' },
+      sort_order: 0,
+      active: true,
+      created_at: daysAgo(30),
+      updated_at: daysAgo(30),
+    },
+    {
+      id: 'pro',
+      price_usd: 25,
+      label: { 'en-US': 'Pro', 'zh-CN': '专业档' },
+      sort_order: 1,
+      active: true,
+      created_at: daysAgo(30),
+      updated_at: daysAgo(30),
+    },
+    {
+      id: 'business',
+      price_usd: 50,
+      label: { 'en-US': 'Business', 'zh-CN': '商务档' },
+      sort_order: 2,
+      active: true,
+      created_at: daysAgo(30),
+      updated_at: daysAgo(30),
+    },
+  ] as MockBillingPackage[],
 
   apiKeys: [
     {

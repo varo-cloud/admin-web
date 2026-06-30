@@ -9,6 +9,7 @@ import usersMock from '../../mock/users'
 import modelsMock from '../../mock/models'
 import generationsMock from '../../mock/generations'
 import billingMock from '../../mock/billing'
+import billingPackagesMock from '../../mock/billing-packages'
 import apiKeysMock from '../../mock/api-keys'
 import pricingMock from '../../mock/pricing'
 import configMock from '../../mock/config'
@@ -22,6 +23,7 @@ const mockModules: MockMethod[] = [
   ...modelsMock,
   ...generationsMock,
   ...billingMock,
+  ...billingPackagesMock,
   ...apiKeysMock,
   ...pricingMock,
   ...configMock,

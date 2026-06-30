@@ -34,6 +34,11 @@ const routes: RouteRecordRaw[] = [
         name: 'billing-transactions',
         component: () => import('@/views/billing/TransactionsView.vue'),
       },
+      {
+        path: 'billing/packages',
+        name: 'billing-packages',
+        component: () => import('@/views/billing/PackagesView.vue'),
+      },
       { path: 'api-keys', name: 'api-keys', component: () => import('@/views/api-keys/ApiKeysView.vue') },
       { path: 'pricing', name: 'pricing', component: () => import('@/views/pricing/PricingView.vue') },
       {

@@ -193,6 +193,16 @@ export interface BillingTransaction {
   completedAt: number | null
 }
 
+export interface BillingPackage {
+  id: string
+  priceUsd: number
+  label?: LocalizedString
+  sortOrder: number
+  active: boolean
+  createdAt: number
+  updatedAt: number
+}
+
 export interface BillingRecord {
   id: string
   style: string
