@@ -64,7 +64,7 @@ export async function fetchGenerations(params: FetchGenerationsParams = {}): Pro
   if (params.refunded !== undefined) query.refunded = String(params.refunded)
 
   const raw = await unwrap<{ items: Record<string, unknown>[]; total: number; offset: number; limit: number }>(
-    http.get('/api/admin/generations', { params: query }),
+    http.get('/admin/generations', { params: query }),
   )
   return {
     items: raw.items.map(mapListItem),
@@ -76,7 +76,7 @@ export async function fetchGenerations(params: FetchGenerationsParams = {}): Pro
 
 export async function fetchGenerationDetail(taskId: string): Promise<AdminGenerationDetail> {
   const raw = await unwrap<Record<string, unknown>>(
-    http.get(`/api/admin/generations/${encodeURIComponent(taskId)}`),
+    http.get(`/admin/generations/${encodeURIComponent(taskId)}`),
   )
   return mapDetail(raw)
 }
@@ -87,7 +87,7 @@ export async function refundGeneration(taskId: string, reason: string): Promise<
     refunded_usd: number
     new_user_balance_usd: number
     billing_record_id: string
-  }>(http.post(`/api/admin/generations/${encodeURIComponent(taskId)}/refund`, { reason }))
+  }>(http.post(`/admin/generations/${encodeURIComponent(taskId)}/refund`, { reason }))
   return {
     taskId: raw.task_id,
     refundedUsd: raw.refunded_usd,

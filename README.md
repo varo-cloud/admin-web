@@ -46,7 +46,6 @@ npm run preview:pages
 |---|---|
 | `VITE_USE_MOCK` | 是否启用 mock（默认 true） |
 | `VITE_BASE` | 部署 base path（GitHub Pages 为 `/admin-web/`） |
-| `VITE_TURNSTILE_SITE_KEY` | Cloudflare Turnstile Site Key |
 
 ## 页面
 

@@ -9,7 +9,7 @@ interface ApiProfile {
 }
 
 export async function fetchProfile(): Promise<AdminProfile> {
-  const raw = await unwrap<ApiProfile>(http.get('/api/user/profile'))
+  const raw = await unwrap<ApiProfile>(http.get('/user/profile'))
   return {
     id: raw.id,
     email: raw.email,

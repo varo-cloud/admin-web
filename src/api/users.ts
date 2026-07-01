@@ -45,7 +45,7 @@ export interface FetchUsersParams {
 
 export async function fetchUsers(params: FetchUsersParams = {}): Promise<UsersPage> {
   const raw = await unwrap<{ items: ApiUserListItem[]; total: number; offset: number; limit: number }>(
-    http.get('/api/admin/users', { params }),
+    http.get('/admin/users', { params }),
   )
   return {
     items: raw.items.map(mapUserListItem),
@@ -77,7 +77,7 @@ export async function fetchUserDetail(userId: string): Promise<AdminUserDetail> 
     }[]
     auto_top_up: { enabled: boolean; threshold_usd: number; package_id: string }
     model_preferences: { favourites: string[]; recent: { id: string; visited_at: number }[] }
-  }>(http.get(`/api/admin/users/${userId}`))
+  }>(http.get(`/admin/users/${userId}`))
 
   return {
     id: raw.id,
@@ -120,7 +120,7 @@ export async function adjustUserBalance(
     new_balance_usd: number
     adjustment_usd: number
     billing_record_id: string
-  }>(http.post(`/api/admin/users/${userId}/balance-adjustment`, {
+  }>(http.post(`/admin/users/${userId}/balance-adjustment`, {
     amount_usd: payload.amountUsd,
     type: payload.type,
     reason: payload.reason,
@@ -136,12 +136,12 @@ export async function adjustUserBalance(
 }
 
 export async function updateUserStatus(userId: string, status: 'active' | 'suspended') {
-  return unwrap(http.patch(`/api/admin/users/${userId}`, { status }))
+  return unwrap(http.patch(`/admin/users/${userId}`, { status }))
 }
 
 export async function fetchUserTransactions(userId: string): Promise<Paginated<BillingTransaction>> {
   const raw = await unwrap<{ items: Record<string, unknown>[]; total: number; offset: number; limit: number }>(
-    http.get(`/api/admin/users/${userId}/billing/transactions`),
+    http.get(`/admin/users/${userId}/billing/transactions`),
   )
   return {
     items: raw.items.map(mapTransaction),
@@ -153,7 +153,7 @@ export async function fetchUserTransactions(userId: string): Promise<Paginated<B
 
 export async function fetchUserBillingRecords(userId: string): Promise<Paginated<BillingRecord>> {
   const raw = await unwrap<{ items: Record<string, unknown>[]; total: number; offset: number; limit: number }>(
-    http.get(`/api/admin/users/${userId}/billing/records`),
+    http.get(`/admin/users/${userId}/billing/records`),
   )
   return {
     items: raw.items.map((r) => ({

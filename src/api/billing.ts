@@ -28,7 +28,7 @@ export interface FetchTransactionsParams {
 
 export async function fetchTransactions(params: FetchTransactionsParams = {}): Promise<TransactionsPage> {
   const raw = await unwrap<{ items: Record<string, unknown>[]; total: number; offset: number; limit: number }>(
-    http.get('/api/admin/billing/transactions', { params }),
+    http.get('/admin/billing/transactions', { params }),
   )
   return {
     items: raw.items.map(mapTransaction),

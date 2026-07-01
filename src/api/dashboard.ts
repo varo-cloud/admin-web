@@ -44,6 +44,6 @@ function mapDashboard(raw: ApiDashboard): DashboardSummary {
 }
 
 export async function fetchDashboardSummary(range = '7d'): Promise<DashboardSummary> {
-  const raw = await unwrap<ApiDashboard>(http.get('/api/admin/dashboard/summary', { params: { range } }))
+  const raw = await unwrap<ApiDashboard>(http.get('/admin/dashboard/summary', { params: { range } }))
   return mapDashboard(raw)
 }

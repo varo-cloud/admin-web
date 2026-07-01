@@ -50,33 +50,33 @@ export function billingPackageToPayload(pkg: Partial<BillingPackage>): Record<st
 }
 
 export async function fetchBillingPackages(): Promise<BillingPackage[]> {
-  const raw = await unwrap<ApiBillingPackage[]>(http.get('/api/admin/billing/packages'))
+  const raw = await unwrap<ApiBillingPackage[]>(http.get('/admin/billing/packages'))
   return [...raw].sort((a, b) => a.sort_order - b.sort_order).map(mapPackage)
 }
 
 export async function createBillingPackage(payload: Record<string, unknown>): Promise<BillingPackage> {
-  const raw = await unwrap<ApiBillingPackage>(http.post('/api/admin/billing/packages', payload))
+  const raw = await unwrap<ApiBillingPackage>(http.post('/admin/billing/packages', payload))
   return mapPackage(raw)
 }
 
 export async function updateBillingPackage(id: string, payload: Record<string, unknown>): Promise<BillingPackage> {
   const raw = await unwrap<ApiBillingPackage>(
-    http.put(`/api/admin/billing/packages/${encodeURIComponent(id)}`, payload),
+    http.put(`/admin/billing/packages/${encodeURIComponent(id)}`, payload),
   )
   return mapPackage(raw)
 }
 
 export async function updateBillingPackageStatus(id: string, active: boolean) {
-  return unwrap(http.patch(`/api/admin/billing/packages/${encodeURIComponent(id)}/status`, { active }))
+  return unwrap(http.patch(`/admin/billing/packages/${encodeURIComponent(id)}/status`, { active }))
 }
 
 export async function deleteBillingPackage(id: string) {
-  return unwrap(http.delete(`/api/admin/billing/packages/${encodeURIComponent(id)}`))
+  return unwrap(http.delete(`/admin/billing/packages/${encodeURIComponent(id)}`))
 }
 
 export async function reorderBillingPackages(packageIds: string[]): Promise<BillingPackage[]> {
   const raw = await unwrap<ApiBillingPackage[]>(
-    http.put('/api/admin/billing/packages/reorder', { package_ids: packageIds }),
+    http.put('/admin/billing/packages/reorder', { package_ids: packageIds }),
   )
   return [...raw].sort((a, b) => a.sort_order - b.sort_order).map(mapPackage)
 }

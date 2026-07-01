@@ -23,11 +23,11 @@ function mapConfig(raw: Record<string, unknown>): SystemConfig {
 }
 
 export async function fetchConfig(): Promise<SystemConfig> {
-  const raw = await unwrap<Record<string, unknown>>(http.get('/api/admin/config'))
+  const raw = await unwrap<Record<string, unknown>>(http.get('/admin/config'))
   return mapConfig(raw)
 }
 
 export async function updateConfig(payload: Record<string, unknown>): Promise<SystemConfig> {
-  const raw = await unwrap<Record<string, unknown>>(http.put('/api/admin/config', payload))
+  const raw = await unwrap<Record<string, unknown>>(http.put('/admin/config', payload))
   return mapConfig(raw)
 }

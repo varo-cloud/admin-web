@@ -34,20 +34,20 @@ export function pricingToPayload(item: Partial<PricingItem>): Record<string, unk
 }
 
 export async function fetchPricingItems(): Promise<PricingItem[]> {
-  const raw = await unwrap<Record<string, unknown>[]>(http.get('/api/admin/pricing'))
+  const raw = await unwrap<Record<string, unknown>[]>(http.get('/admin/pricing'))
   return raw.map(mapItem)
 }
 
 export async function createPricingItem(payload: Record<string, unknown>) {
-  const raw = await unwrap<Record<string, unknown>>(http.post('/api/admin/pricing', payload))
+  const raw = await unwrap<Record<string, unknown>>(http.post('/admin/pricing', payload))
   return mapItem(raw)
 }
 
 export async function updatePricingItem(id: string, payload: Record<string, unknown>) {
-  const raw = await unwrap<Record<string, unknown>>(http.put(`/api/admin/pricing/${id}`, payload))
+  const raw = await unwrap<Record<string, unknown>>(http.put(`/admin/pricing/${id}`, payload))
   return mapItem(raw)
 }
 
 export async function deletePricingItem(id: string) {
-  return unwrap(http.delete(`/api/admin/pricing/${id}`))
+  return unwrap(http.delete(`/admin/pricing/${id}`))
 }

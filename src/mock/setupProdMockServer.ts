@@ -2,7 +2,7 @@ import axios, { getAdapter, type AxiosResponse, type InternalAxiosRequestConfig 
 import type { MockMethod } from 'vite-plugin-mock'
 import { match as matchPath } from 'path-to-regexp'
 import { http } from '@/api/http'
-import { stripDeployBase } from '@/utils/apiBaseUrl'
+import { toProdMockUrl } from '@/utils/apiBaseUrl'
 import authMock from '../../mock/auth'
 import dashboardMock from '../../mock/dashboard'
 import usersMock from '../../mock/users'
@@ -81,7 +81,7 @@ function matchMockUrl(mockUrl: string | RegExp, pathname: string): Record<string
 function resolveMockResponse(config: InternalAxiosRequestConfig): unknown | null {
   const method = (config.method ?? 'get').toLowerCase()
   const requestUrl = resolveRequestUrl(config)
-  const pathname = stripDeployBase(requestUrl.split('?')[0] ?? requestUrl)
+  const pathname = requestUrl.split('?')[0] ?? requestUrl
   const query: Record<string, string> = { ...queryFromUrl(requestUrl) }
 
   if (config.params && typeof config.params === 'object') {
@@ -103,7 +103,7 @@ function resolveMockResponse(config: InternalAxiosRequestConfig): unknown | null
     const mockMethod = (mock.method ?? 'get').toLowerCase()
     if (mockMethod !== method) continue
 
-    const matched = matchMockUrl(mock.url, pathname)
+    const matched = matchMockUrl(toProdMockUrl(mock.url), pathname)
     if (matched === false) continue
 
     Object.assign(query, matched)

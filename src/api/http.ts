@@ -30,7 +30,7 @@ async function tryRefreshAccessToken(): Promise<string | null> {
     refreshPromise = (async () => {
       try {
         const { data } = await axios.post<ApiResponse<TokenPair>>(
-          `${apiBaseUrl()}/api/auth/refresh`,
+          `${apiBaseUrl()}/auth/refresh`,
           { refresh_token: refreshToken },
         )
         if (data.code !== 0 || !data.data) throw new Error(data.message)

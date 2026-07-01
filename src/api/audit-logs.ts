@@ -18,7 +18,7 @@ function mapLog(raw: Record<string, unknown>): AuditLog {
 
 export async function fetchAuditLogs(params: { offset?: number; limit?: number } = {}): Promise<AuditLogsPage> {
   const raw = await unwrap<{ items: Record<string, unknown>[]; total: number; offset: number; limit: number }>(
-    http.get('/api/admin/audit-logs', { params }),
+    http.get('/admin/audit-logs', { params }),
   )
   return {
     items: raw.items.map(mapLog),

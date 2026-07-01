@@ -97,39 +97,39 @@ export function heroSlideToPayload(slide: Partial<HeroCarouselSlide>): Record<st
 }
 
 export async function fetchHeroCarousel(): Promise<HeroCarouselConfig> {
-  const raw = await unwrap<ApiHeroCarousel>(http.get('/api/admin/hero-carousel'))
+  const raw = await unwrap<ApiHeroCarousel>(http.get('/admin/hero-carousel'))
   return mapConfig(raw)
 }
 
 export async function updateHeroCarousel(payload: Record<string, unknown>): Promise<HeroCarouselConfig> {
-  const raw = await unwrap<ApiHeroCarousel>(http.put('/api/admin/hero-carousel', payload))
+  const raw = await unwrap<ApiHeroCarousel>(http.put('/admin/hero-carousel', payload))
   return mapConfig(raw)
 }
 
 export async function createHeroSlide(payload: Record<string, unknown>): Promise<HeroCarouselSlide> {
-  const raw = await unwrap<ApiHeroSlide>(http.post('/api/admin/hero-carousel/slides', payload))
+  const raw = await unwrap<ApiHeroSlide>(http.post('/admin/hero-carousel/slides', payload))
   return mapSlide(raw)
 }
 
 export async function updateHeroSlide(slideId: string, payload: Record<string, unknown>): Promise<HeroCarouselSlide> {
   const raw = await unwrap<ApiHeroSlide>(
-    http.put(`/api/admin/hero-carousel/slides/${encodeURIComponent(slideId)}`, payload),
+    http.put(`/admin/hero-carousel/slides/${encodeURIComponent(slideId)}`, payload),
   )
   return mapSlide(raw)
 }
 
 export async function updateHeroSlideStatus(slideId: string, active: boolean) {
   return unwrap(
-    http.patch(`/api/admin/hero-carousel/slides/${encodeURIComponent(slideId)}/status`, { active }),
+    http.patch(`/admin/hero-carousel/slides/${encodeURIComponent(slideId)}/status`, { active }),
   )
 }
 
 export async function deleteHeroSlide(slideId: string) {
-  return unwrap(http.delete(`/api/admin/hero-carousel/slides/${encodeURIComponent(slideId)}`))
+  return unwrap(http.delete(`/admin/hero-carousel/slides/${encodeURIComponent(slideId)}`))
 }
 
 export async function reorderHeroSlides(slideIds: string[]): Promise<HeroCarouselConfig> {
-  const raw = await unwrap<ApiHeroCarousel>(http.put('/api/admin/hero-carousel/slides/reorder', { slide_ids: slideIds }))
+  const raw = await unwrap<ApiHeroCarousel>(http.put('/admin/hero-carousel/slides/reorder', { slide_ids: slideIds }))
   return mapConfig(raw)
 }
 
@@ -142,7 +142,7 @@ export async function uploadHeroAsset(file: File, kind: 'video' | 'poster'): Pro
     kind: 'video' | 'poster'
     content_type: string
     size_bytes: number
-  }>(http.post('/api/admin/hero-carousel/assets', form, { headers: { 'Content-Type': 'multipart/form-data' } }))
+  }>(http.post('/admin/hero-carousel/assets', form, { headers: { 'Content-Type': 'multipart/form-data' } }))
   return {
     url: raw.url,
     kind: raw.kind,

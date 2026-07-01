@@ -93,30 +93,30 @@ export async function fetchModels(params: FetchModelsParams = {}): Promise<Model
   const query: Record<string, string | number> = { ...params } as Record<string, string | number>
   if (params.active !== undefined) query.active = String(params.active)
   const raw = await unwrap<{ items: ApiModelListItem[]; total: number; offset: number; limit: number }>(
-    http.get('/api/admin/models', { params: query }),
+    http.get('/admin/models', { params: query }),
   )
   return { items: raw.items.map(mapListItem), total: raw.total, offset: raw.offset, limit: raw.limit }
 }
 
 export async function fetchModelDetail(modelId: string): Promise<AdminModelDetail> {
-  const raw = await unwrap<ApiModelDetail>(http.get(`/api/admin/models/${encodeURIComponent(modelId)}`))
+  const raw = await unwrap<ApiModelDetail>(http.get(`/admin/models/${encodeURIComponent(modelId)}`))
   return mapDetail(raw)
 }
 
 export async function createModel(payload: Record<string, unknown>): Promise<AdminModelDetail> {
-  const raw = await unwrap<ApiModelDetail>(http.post('/api/admin/models', payload))
+  const raw = await unwrap<ApiModelDetail>(http.post('/admin/models', payload))
   return mapDetail(raw)
 }
 
 export async function updateModel(modelId: string, payload: Record<string, unknown>): Promise<AdminModelDetail> {
   const raw = await unwrap<ApiModelDetail>(
-    http.put(`/api/admin/models/${encodeURIComponent(modelId)}`, payload),
+    http.put(`/admin/models/${encodeURIComponent(modelId)}`, payload),
   )
   return mapDetail(raw)
 }
 
 export async function updateModelStatus(modelId: string, active: boolean) {
-  return unwrap(http.patch(`/api/admin/models/${encodeURIComponent(modelId)}/status`, { active }))
+  return unwrap(http.patch(`/admin/models/${encodeURIComponent(modelId)}/status`, { active }))
 }
 
 export function modelToPayload(model: Partial<AdminModelDetail>): Record<string, unknown> {
