@@ -6,19 +6,25 @@ export function setupGuards(router: Router) {
     if (to.meta.public) return true
 
     const auth = useAuthStore()
-    if (!auth.hasToken()) return { path: '/login', query: { redirect: to.fullPath } }
+    if (!auth.hasToken()) {
+      return {
+        path: '/forbidden',
+        query: { reason: 'unauthenticated', redirect: to.fullPath },
+      }
+    }
 
     try {
-      const profile = await auth.ensureAdminProfile()
-      if (profile.role !== 'admin') {
-        await auth.signOut()
-        return { path: '/login', query: { error: 'forbidden' } }
-      }
+      await auth.ensureAdminProfile()
       return true
-    } catch {
-      if (!auth.hasToken()) return { path: '/login', query: { redirect: to.fullPath } }
-      await auth.signOut()
-      return { path: '/login', query: { error: 'forbidden' } }
+    } catch (e) {
+      if (e instanceof Error && e.message === 'forbidden') {
+        return { path: '/forbidden', query: { reason: 'forbidden' } }
+      }
+      auth.clearProfile()
+      return {
+        path: '/forbidden',
+        query: { reason: 'unauthenticated', redirect: to.fullPath },
+      }
     }
   })
 }

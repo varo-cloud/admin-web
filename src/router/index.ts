@@ -3,10 +3,10 @@ import { setupGuards } from './guards'
 
 const routes: RouteRecordRaw[] = [
   {
-    path: '/login',
-    name: 'login',
+    path: '/forbidden',
+    name: 'forbidden',
     meta: { public: true },
-    component: () => import('@/views/login/LoginView.vue'),
+    component: () => import('@/views/auth/ForbiddenView.vue'),
   },
   {
     path: '/',
@@ -50,6 +50,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'audit-logs', name: 'audit-logs', component: () => import('@/views/audit-logs/AuditLogsView.vue') },
     ],
   },
+  { path: '/login', redirect: '/dashboard' },
   { path: '/:pathMatch(.*)*', redirect: '/dashboard' },
 ]
 

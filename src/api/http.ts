@@ -1,9 +1,10 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import type { ApiResponse, TokenPair } from '@/types'
 import { apiBaseUrl } from '@/utils/apiBaseUrl'
+import { resolveRefreshToken, resolveRequestBearerToken } from '@/utils/devAuthToken'
 
-const TOKEN_KEY = 'admin_access_token'
-const REFRESH_TOKEN_KEY = 'admin_refresh_token'
+const TOKEN_KEY = 'auth_token'
+const REFRESH_TOKEN_KEY = 'refresh_token'
 
 export const http = axios.create({
   baseURL: apiBaseUrl(),
@@ -14,10 +15,15 @@ interface RetryableRequestConfig extends InternalAxiosRequestConfig {
   _retry?: boolean
 }
 
+function isAuthExemptUrl(url?: string): boolean {
+  if (!url) return false
+  return url.includes('/auth/refresh') || url.includes('/auth/logout')
+}
+
 let refreshPromise: Promise<string | null> | null = null
 
 async function tryRefreshAccessToken(): Promise<string | null> {
-  const refreshToken = getRefreshToken()
+  const refreshToken = getRefreshToken() ?? resolveRefreshToken()
   if (!refreshToken) return null
 
   if (!refreshPromise) {
@@ -43,7 +49,7 @@ async function tryRefreshAccessToken(): Promise<string | null> {
 }
 
 http.interceptors.request.use((config) => {
-  const token = getToken()
+  const token = resolveRequestBearerToken()
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
@@ -63,8 +69,7 @@ http.interceptors.response.use(
       config &&
       !config._retry &&
       isUnauthorized &&
-      !config.url?.includes('/auth/refresh') &&
-      !config.url?.includes('/auth/verify-otp')
+      !isAuthExemptUrl(config.url)
     ) {
       config._retry = true
       const newToken = await tryRefreshAccessToken()

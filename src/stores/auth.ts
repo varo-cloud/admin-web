@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { fetchProfile, logout as apiLogout } from '@/api/auth'
-import { clearAuthTokens, getToken } from '@/api/http'
+import { fetchProfile } from '@/api/auth'
+import { getToken } from '@/api/http'
 import type { AdminProfile } from '@/types'
 
 export const useAuthStore = defineStore('auth', () => {
@@ -19,18 +19,17 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function ensureAdminProfile() {
-    if (profile.value) return profile.value
+    if (profile.value?.role === 'admin') return profile.value
+
     const p = await loadProfile()
     if (p.role !== 'admin') {
-      await signOut()
+      profile.value = p
       throw new Error('forbidden')
     }
     return p
   }
 
-  async function signOut() {
-    await apiLogout()
-    clearAuthTokens()
+  function clearProfile() {
     profile.value = null
   }
 
@@ -38,5 +37,5 @@ export const useAuthStore = defineStore('auth', () => {
     return Boolean(getToken())
   }
 
-  return { profile, loading, loadProfile, ensureAdminProfile, signOut, hasToken }
+  return { profile, loading, loadProfile, ensureAdminProfile, clearProfile, hasToken }
 })

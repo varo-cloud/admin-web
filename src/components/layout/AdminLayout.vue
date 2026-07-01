@@ -59,9 +59,8 @@ const activeKey = computed(() => {
   return path
 })
 
-async function handleLogout() {
-  await auth.signOut()
-  router.push('/login')
+function goHome() {
+  window.location.href = '/'
 }
 </script>
 
@@ -81,7 +80,7 @@ async function handleLogout() {
         <div class="header-actions">
           <NAvatar round size="small">{{ auth.profile?.email?.[0]?.toUpperCase() ?? 'A' }}</NAvatar>
           <span class="email">{{ auth.profile?.email }}</span>
-          <NButton size="small" quaternary @click="handleLogout">退出</NButton>
+          <NButton size="small" quaternary @click="goHome">返回主站</NButton>
         </div>
       </NLayoutHeader>
       <NLayoutContent content-style="padding: 24px">
