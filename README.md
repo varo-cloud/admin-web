@@ -9,13 +9,42 @@ npm install
 npm run dev
 ```
 
-默认启用 Mock API（`VITE_USE_MOCK=true`）。
+默认启用 Mock API（`VITE_USE_MOCK=true`）。复制 `.env.example` 为 `.env.development` 可覆盖本地配置。
 
-### Mock 登录
+### 转发到本地 / 远程后端
 
-- 管理员邮箱：`admin@varo.cloud`
-- 验证码：任意 6 位数字
-- 非 admin 邮箱登录后会被拒绝访问
+**分路代理**（user profile 与 admin 接口在不同服务上，本地常见场景）：
+
+```bash
+VITE_USE_MOCK=false
+VITE_API_BASE_URL=/api
+VITE_DEV_USER_API_PROXY_TARGET=http://localhost:8000   # /api/user、/api/auth
+VITE_DEV_ADMIN_API_PROXY_TARGET=http://localhost:8001 # /api/admin/*
+VITE_DEV_AUTH_TOKEN=你的admin_access_token            # 可选，免登录联调
+```
+
+**单后端**（所有 `/api` 指向同一地址，如 staging）：
+
+```bash
+VITE_USE_MOCK=false
+VITE_API_BASE_URL=/api
+VITE_DEV_API_PROXY_TARGET=https://staging.api.varo.cloud
+```
+
+重启 `npm run dev` 后生效。`VITE_USE_MOCK` 必须为 `false`，否则 Mock 会拦截请求。
+
+### Mock 开发（离线）
+
+```bash
+VITE_USE_MOCK=true
+# 不设置 VITE_DEV_API_PROXY_TARGET
+```
+
+无 token 时会自动写入 mock admin token，可直接进入后台。
+
+### 与主站同域部署
+
+生产环境无需代理；与主站共享 `auth_token` / `refresh_token`，仅 `role === admin` 可访问。
 
 ## GitHub Pages 部署
 
@@ -44,7 +73,12 @@ npm run preview:pages
 
 | 变量 | 说明 |
 |---|---|
-| `VITE_USE_MOCK` | 是否启用 mock（默认 true） |
+| `VITE_USE_MOCK` | 开发时是否启用 mock（`true` / `false`） |
+| `VITE_API_BASE_URL` | API 根路径，本地代理一般为 `/api` |
+| `VITE_DEV_USER_API_PROXY_TARGET` | **仅 dev**：`/api/user`、`/api/auth` 代理目标 |
+| `VITE_DEV_ADMIN_API_PROXY_TARGET` | **仅 dev**：`/api/admin/*` 代理目标 |
+| `VITE_DEV_API_PROXY_TARGET` | **仅 dev**：单后端模式，所有 `/api` 代理到同一目标 |
+| `VITE_DEV_AUTH_TOKEN` | **仅 dev**：写入 localStorage 的 admin token |
 | `VITE_BASE` | 部署 base path（GitHub Pages 为 `/admin-web/`） |
 
 ## 页面
