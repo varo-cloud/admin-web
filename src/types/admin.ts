@@ -5,6 +5,7 @@ import type {
   LocalizedString,
   ModelFaqItem,
   Paginated,
+  PaymentProvider,
   PricingPriceUnit,
   TransactionStatus,
   UserRole,
@@ -47,7 +48,7 @@ export interface AdminUserListItem {
   balanceUsd: number
   apiKeysCount: number
   createdAt: number
-  lastActiveAt: number
+  lastActiveAt: number | null
 }
 
 export interface AdminUserApiKey {
@@ -55,8 +56,6 @@ export interface AdminUserApiKey {
   name: string
   prefix: string
   isActive: boolean
-  totalCalls: number
-  totalSpendUsd: number
   lastUsedAt: number | null
   createdAt: number
 }
@@ -68,14 +67,8 @@ export interface AdminUserDetail {
   status: UserStatus
   balanceUsd: number
   balanceCredits: number
-  spentThisMonthUsd: number
   createdAt: number
   apiKeys: AdminUserApiKey[]
-  autoTopUp: {
-    enabled: boolean
-    thresholdUsd: number
-    packageId: string
-  }
   modelPreferences: {
     favourites: string[]
     recent: { id: string; visitedAt: number }[]
@@ -120,6 +113,7 @@ export interface AdminModelDetail {
   capabilities: string[]
   description: LocalizedString
   thumbnailUrl?: string
+  iconUrl?: string
   modelPath: string
   apiModelId: string
   active: boolean
@@ -144,8 +138,7 @@ export interface AdminGenerationListItem {
   taskId: string
   userId: string
   userEmail: string
-  modelId: string
-  apiModelId: string
+  model: string
   status: GenerationStatus
   costUsd: number
   duration: number
@@ -153,22 +146,25 @@ export interface AdminGenerationListItem {
   apiKeyPrefix: string | null
   refunded: boolean
   createdAt: number
-  completedAt: number | null
 }
 
-export interface GenerationTimelineEntry {
+export interface AdminUserGenerationItem {
+  taskId: string
+  model: string
+  duration: number
+  costUsd: number
   status: GenerationStatus
-  at: number
+  invocationChannel: InvocationChannel
+  refunded: boolean
+  createdAt: number
 }
 
 export interface AdminGenerationDetail extends AdminGenerationListItem {
   apiKeyId: string | null
   input: Record<string, unknown>
   output: { type: string; url?: string } | null
+  outputUrl?: string
   billingRecordId: string | null
-  upstreamTaskId: string | null
-  upstreamError: string | null
-  timeline: GenerationTimelineEntry[]
 }
 
 export interface RefundResult {
@@ -180,14 +176,14 @@ export interface RefundResult {
 
 export interface BillingTransaction {
   id: string
-  userId: string
-  userEmail: string
+  userId?: string
+  userEmail?: string
   amountUsd: number
-  packageId: string
   status: TransactionStatus
-  paymentMethod: string
-  paymentDetail: string
-  stripeSessionId: string
+  provider?: PaymentProvider
+  paymentMethod: string | null
+  paymentDetail: string | null
+  providerSessionId: string | null
   receiptUrl: string | null
   createdAt: number
   completedAt: number | null
@@ -242,9 +238,13 @@ export interface ProcessingFee {
   fixedUsd: number
 }
 
+export type ProcessingFeeProvider = 'stripe' | 'nowpayments'
+
+export type ProcessingFeeByProvider = Record<ProcessingFeeProvider, ProcessingFee>
+
 export interface AdminConfig {
   creditsPerUsd: number
-  processingFee: ProcessingFee
+  processingFee: ProcessingFeeByProvider
 }
 
 export interface AuditLog {

@@ -6,6 +6,8 @@ const props = defineProps<{ status: string }>()
 const colorMap: Record<string, 'success' | 'info' | 'warning' | 'error' | 'default'> = {
   active: 'success',
   completed: 'success',
+  succeeded: 'success',
+  partial: 'warning',
   pending: 'info',
   processing: 'info',
   queued: 'default',
@@ -19,6 +21,8 @@ const colorMap: Record<string, 'success' | 'info' | 'warning' | 'error' | 'defau
 const labelMap: Record<string, string> = {
   active: '活跃',
   completed: '已完成',
+  succeeded: '已完成',
+  partial: '部分完成',
   pending: '待处理',
   processing: '处理中',
   queued: '排队中',

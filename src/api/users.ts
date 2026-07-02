@@ -1,14 +1,15 @@
 import { http, unwrap } from './http'
+import { mapBillingTransaction } from './billing'
 import type {
   AdminUserDetail,
+  AdminUserGenerationItem,
   AdminUserListItem,
   BalanceAdjustmentPayload,
   BalanceAdjustmentResult,
-  BillingRecord,
   BillingTransaction,
   UsersPage,
 } from '@/types/admin'
-import type { Paginated } from '@/types'
+import type { GenerationStatus, InvocationChannel, Paginated } from '@/types'
 
 interface ApiUserListItem {
   id: string
@@ -18,7 +19,7 @@ interface ApiUserListItem {
   balance_usd: number
   api_keys_count: number
   created_at: number
-  last_active_at: number
+  last_active_at: number | null
 }
 
 function mapUserListItem(raw: ApiUserListItem): AdminUserListItem {
@@ -63,19 +64,15 @@ export async function fetchUserDetail(userId: string): Promise<AdminUserDetail> 
     status: 'active' | 'suspended'
     balance_usd: number
     balance_credits: number
-    spent_this_month_usd: number
     created_at: number
     api_keys: {
       id: string
       name: string
       prefix: string
       is_active: boolean
-      total_calls: number
-      total_spend_usd: number
       last_used_at: number | null
       created_at: number
     }[]
-    auto_top_up: { enabled: boolean; threshold_usd: number; package_id: string }
     model_preferences: { favourites: string[]; recent: { id: string; visited_at: number }[] }
   }>(http.get(`/admin/users/${userId}`))
 
@@ -86,23 +83,15 @@ export async function fetchUserDetail(userId: string): Promise<AdminUserDetail> 
     status: raw.status,
     balanceUsd: raw.balance_usd,
     balanceCredits: raw.balance_credits,
-    spentThisMonthUsd: raw.spent_this_month_usd,
     createdAt: raw.created_at,
     apiKeys: raw.api_keys.map((k) => ({
       id: k.id,
       name: k.name,
       prefix: k.prefix,
       isActive: k.is_active,
-      totalCalls: k.total_calls,
-      totalSpendUsd: k.total_spend_usd,
       lastUsedAt: k.last_used_at,
       createdAt: k.created_at,
     })),
-    autoTopUp: {
-      enabled: raw.auto_top_up.enabled,
-      thresholdUsd: raw.auto_top_up.threshold_usd,
-      packageId: raw.auto_top_up.package_id,
-    },
     modelPreferences: {
       favourites: raw.model_preferences.favourites,
       recent: raw.model_preferences.recent.map((r) => ({ id: r.id, visitedAt: r.visited_at })),
@@ -135,53 +124,42 @@ export async function adjustUserBalance(
   }
 }
 
-export async function updateUserStatus(userId: string, status: 'active' | 'suspended') {
-  return unwrap(http.patch(`/admin/users/${userId}`, { status }))
-}
-
 export async function fetchUserTransactions(userId: string): Promise<Paginated<BillingTransaction>> {
   const raw = await unwrap<{ items: Record<string, unknown>[]; total: number; offset: number; limit: number }>(
     http.get(`/admin/users/${userId}/billing/transactions`),
   )
   return {
-    items: raw.items.map(mapTransaction),
+    items: raw.items.map(mapBillingTransaction),
     total: raw.total,
     offset: raw.offset,
     limit: raw.limit,
   }
 }
 
-export async function fetchUserBillingRecords(userId: string): Promise<Paginated<BillingRecord>> {
+function mapUserGeneration(raw: Record<string, unknown>): AdminUserGenerationItem {
+  return {
+    taskId: String(raw.task_id),
+    model: raw.model != null ? String(raw.model) : String(raw.model_id ?? ''),
+    duration: Number(raw.duration),
+    costUsd: Number(raw.cost_usd),
+    status: raw.status as GenerationStatus,
+    invocationChannel: raw.invocation_channel as InvocationChannel,
+    refunded: Boolean(raw.refunded),
+    createdAt: Number(raw.created_at),
+  }
+}
+
+export async function fetchUserGenerations(
+  userId: string,
+  params: { offset?: number; limit?: number } = {},
+): Promise<Paginated<AdminUserGenerationItem>> {
   const raw = await unwrap<{ items: Record<string, unknown>[]; total: number; offset: number; limit: number }>(
-    http.get(`/admin/users/${userId}/billing/records`),
+    http.get(`/admin/users/${userId}/generations`, { params }),
   )
   return {
-    items: raw.items.map((r) => ({
-      id: String(r.id),
-      style: String(r.style),
-      detail: String(r.detail),
-      amountUsd: Number(r.amount_usd),
-      createdAt: Number(r.created_at),
-    })),
+    items: raw.items.map(mapUserGeneration),
     total: raw.total,
     offset: raw.offset,
     limit: raw.limit,
-  }
-}
-
-function mapTransaction(raw: Record<string, unknown>): BillingTransaction {
-  return {
-    id: String(raw.id),
-    userId: String(raw.user_id),
-    userEmail: String(raw.user_email),
-    amountUsd: Number(raw.amount_usd),
-    packageId: String(raw.package_id),
-    status: raw.status as BillingTransaction['status'],
-    paymentMethod: String(raw.payment_method),
-    paymentDetail: String(raw.payment_detail),
-    stripeSessionId: String(raw.stripe_session_id),
-    receiptUrl: raw.receipt_url ? String(raw.receipt_url) : null,
-    createdAt: Number(raw.created_at),
-    completedAt: raw.completed_at ? Number(raw.completed_at) : null,
   }
 }

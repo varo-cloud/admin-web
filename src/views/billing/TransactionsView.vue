@@ -36,7 +36,13 @@ const statusOptions = [
   { label: 'completed', value: 'completed' },
   { label: 'failed', value: 'failed' },
   { label: 'expired', value: 'expired' },
+  { label: 'partial', value: 'partial' },
 ]
+
+const providerLabels: Record<string, string> = {
+  stripe: 'Stripe',
+  nowpayments: 'NOWPayments',
+}
 
 async function load() {
   loading.value = true
@@ -68,11 +74,15 @@ onMounted(load)
 
 const columns: DataTableColumns<BillingTransaction> = [
   { title: '交易 ID', key: 'id' },
-  { title: '用户', key: 'userEmail' },
+  { title: '用户', key: 'userEmail', render: (r) => r.userEmail ?? '—' },
   { title: '金额', key: 'amountUsd', render: (r) => formatUsd(r.amountUsd) },
-  { title: '套餐', key: 'packageId' },
+  {
+    title: '渠道',
+    key: 'provider',
+    render: (r) => (r.provider ? providerLabels[r.provider] ?? r.provider : '—'),
+  },
   { title: '状态', key: 'status', render: (r) => h(StatusTag, { status: r.status }) },
-  { title: '支付方式', key: 'paymentDetail' },
+  { title: '支付方式', key: 'paymentDetail', render: (r) => r.paymentDetail ?? r.paymentMethod ?? '—' },
   { title: '创建时间', key: 'createdAt', render: (r) => formatTimestamp(r.createdAt) },
   {
     title: '完成时间',
@@ -86,7 +96,7 @@ const columns: DataTableColumns<BillingTransaction> = [
       h('div', { style: 'display:flex;gap:8px' }, [
         h(NButton, { size: 'small', onClick: () => { selected.value = r; drawerShow.value = true } }, () => '详情'),
         r.receiptUrl
-          ? h(NButton, { size: 'small', tag: 'a', href: r.receiptUrl, target: '_blank' }, () => 'Stripe')
+          ? h(NButton, { size: 'small', tag: 'a', href: r.receiptUrl, target: '_blank' }, () => '收据')
           : null,
       ]),
   },
@@ -119,13 +129,17 @@ const columns: DataTableColumns<BillingTransaction> = [
     <NDrawer v-model:show="drawerShow" :width="420">
       <NDrawerContent v-if="selected" title="订单详情">
         <p>ID: {{ selected.id }}</p>
-        <p>用户: {{ selected.userEmail }}</p>
+        <p>用户: {{ selected.userEmail ?? '—' }}</p>
         <p>金额: {{ formatUsd(selected.amountUsd) }}</p>
-        <p>套餐: {{ selected.packageId }}</p>
+        <p>渠道: {{ selected.provider ? providerLabels[selected.provider] ?? selected.provider : '—' }}</p>
         <p>状态: <StatusTag :status="selected.status" /></p>
-        <p>Stripe Session: <span class="mono">{{ selected.stripeSessionId }}</span></p>
+        <p v-if="selected.paymentMethod">支付方式: {{ selected.paymentMethod }}</p>
+        <p v-if="selected.paymentDetail">支付详情: {{ selected.paymentDetail }}</p>
+        <p v-if="selected.providerSessionId">
+          渠道会话: <span class="mono">{{ selected.providerSessionId }}</span>
+        </p>
         <p v-if="selected.receiptUrl">
-          <a :href="selected.receiptUrl" target="_blank" rel="noopener">Receipt</a>
+          <a :href="selected.receiptUrl" target="_blank" rel="noopener">查看收据</a>
         </p>
       </NDrawerContent>
     </NDrawer>

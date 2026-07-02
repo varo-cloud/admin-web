@@ -19,18 +19,15 @@ import {
 } from 'naive-ui'
 import {
   adjustUserBalance,
-  fetchUserBillingRecords,
   fetchUserDetail,
+  fetchUserGenerations,
   fetchUserTransactions,
-  updateUserStatus,
 } from '@/api/users'
-import { fetchGenerations } from '@/api/generations'
 import StatusTag from '@/components/StatusTag.vue'
 import { formatUsd } from '@/utils/currency'
 import { formatTimestamp } from '@/utils/time'
-import type { AdminUserDetail, BillingRecord, BillingTransaction } from '@/types/admin'
+import type { AdminUserDetail, AdminUserGenerationItem, BillingTransaction } from '@/types/admin'
 import type { BalanceAdjustmentType } from '@/types'
-import type { AdminGenerationListItem } from '@/types/admin'
 
 const route = useRoute()
 const message = useMessage()
@@ -40,8 +37,7 @@ const loading = ref(true)
 const detail = ref<AdminUserDetail | null>(null)
 
 const transactions = ref<BillingTransaction[]>([])
-const records = ref<BillingRecord[]>([])
-const generations = ref<AdminGenerationListItem[]>([])
+const generations = ref<AdminUserGenerationItem[]>([])
 
 const showAdjust = ref(false)
 const adjustType = ref<BalanceAdjustmentType>('bonus')
@@ -68,13 +64,11 @@ async function loadDetail() {
 }
 
 async function loadTabs() {
-  const [txRes, recRes, genRes] = await Promise.all([
+  const [txRes, genRes] = await Promise.all([
     fetchUserTransactions(userId.value),
-    fetchUserBillingRecords(userId.value),
-    fetchGenerations({ email: detail.value?.email, limit: 20 }),
+    fetchUserGenerations(userId.value, { limit: 20 }),
   ])
   transactions.value = txRes.items
-  records.value = recRes.items
   generations.value = genRes.items
 }
 
@@ -116,37 +110,17 @@ async function submitAdjust() {
   }
 }
 
-async function suspendUser() {
-  dialog.warning({
-    title: '禁用账号',
-    content: '禁用后用户无法登录、无法提交任务。是否继续？',
-    positiveText: '禁用',
-    onPositiveClick: async () => {
-      await updateUserStatus(userId.value, 'suspended')
-      message.success('已禁用')
-      await loadDetail()
-    },
-  })
-}
-
 const txColumns: DataTableColumns<BillingTransaction> = [
   { title: 'ID', key: 'id' },
   { title: '金额', key: 'amountUsd', render: (r) => formatUsd(r.amountUsd) },
-  { title: '套餐', key: 'packageId' },
   { title: '状态', key: 'status', render: (r) => h(StatusTag, { status: r.status }) },
+  { title: '支付方式', key: 'paymentMethod', render: (r) => r.paymentMethod ?? '—' },
   { title: '创建时间', key: 'createdAt', render: (r) => formatTimestamp(r.createdAt) },
 ]
 
-const recordColumns: DataTableColumns<BillingRecord> = [
-  { title: '类型', key: 'style' },
-  { title: '详情', key: 'detail' },
-  { title: '金额', key: 'amountUsd', render: (r) => formatUsd(r.amountUsd) },
-  { title: '时间', key: 'createdAt', render: (r) => formatTimestamp(r.createdAt) },
-]
-
-const genColumns: DataTableColumns<AdminGenerationListItem> = [
+const genColumns: DataTableColumns<AdminUserGenerationItem> = [
   { title: 'Task ID', key: 'taskId' },
-  { title: '模型', key: 'modelId' },
+  { title: '模型', key: 'model' },
   { title: '状态', key: 'status', render: (r) => h(StatusTag, { status: r.status }) },
   { title: '费用', key: 'costUsd', render: (r) => formatUsd(r.costUsd) },
   { title: '时间', key: 'createdAt', render: (r) => formatTimestamp(r.createdAt) },
@@ -160,15 +134,11 @@ const genColumns: DataTableColumns<AdminGenerationListItem> = [
         <div>
           <h1 class="page-title">{{ detail.email }}</h1>
           <p class="meta">
-            余额 {{ formatUsd(detail.balanceUsd) }} · 本月消费 {{ formatUsd(detail.spentThisMonthUsd) }} ·
-            注册 {{ formatTimestamp(detail.createdAt) }}
+            余额 {{ formatUsd(detail.balanceUsd) }} · 注册 {{ formatTimestamp(detail.createdAt) }}
           </p>
         </div>
         <div class="actions">
           <NButton type="primary" @click="showAdjust = true">调整余额</NButton>
-          <NButton v-if="detail.status === 'active'" type="error" quaternary @click="suspendUser">
-            禁用账号
-          </NButton>
         </div>
       </div>
 
@@ -176,8 +146,7 @@ const genColumns: DataTableColumns<AdminGenerationListItem> = [
         <NTabPane name="overview" tab="概览">
           <NCard>
             <p>角色：{{ detail.role }} · 状态：{{ detail.status }}</p>
-            <p class="credits-hint">内部 credits: {{ detail.balanceCredits }}（研发调试）</p>
-            <p>自动充值：{{ detail.autoTopUp.enabled ? '已开启' : '未开启' }}</p>
+            <p class="credits-hint">内部 credits: {{ detail.balanceCredits }}（1 USD = 100 credits）</p>
             <p>收藏模型：{{ detail.modelPreferences.favourites.join(', ') || '—' }}</p>
           </NCard>
         </NTabPane>
@@ -187,17 +156,13 @@ const genColumns: DataTableColumns<AdminGenerationListItem> = [
               { title: '名称', key: 'name' },
               { title: 'Prefix', key: 'prefix' },
               { title: '状态', key: 'isActive', render: (r) => (r.isActive ? 'Active' : 'Revoked') },
-              { title: '调用', key: 'totalCalls' },
-              { title: '消耗', key: 'totalSpendUsd', render: (r) => formatUsd(r.totalSpendUsd) },
+              { title: '最近使用', key: 'lastUsedAt', render: (r) => (r.lastUsedAt ? formatTimestamp(r.lastUsedAt) : '—') },
             ]"
             :data="detail.apiKeys"
           />
         </NTabPane>
         <NTabPane name="tx" tab="充值记录">
           <NDataTable :columns="txColumns" :data="transactions" />
-        </NTabPane>
-        <NTabPane name="records" tab="账单流水">
-          <NDataTable :columns="recordColumns" :data="records" />
         </NTabPane>
         <NTabPane name="gens" tab="生成记录">
           <NDataTable :columns="genColumns" :data="generations" />

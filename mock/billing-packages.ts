@@ -53,20 +53,34 @@ export default [
     response: ({ body, headers }: { body: Record<string, unknown>; headers: Record<string, string> }) => {
       const auth = requireAdmin(headers)
       if (!auth.ok) return auth.response
-      const packageIds = Array.isArray(body.package_ids) ? body.package_ids.map(String) : []
+      const packageIds = Array.isArray(body.orders)
+        ? body.orders.map((o: { id?: string }) => String(o.id ?? ''))
+        : Array.isArray(body.package_ids)
+          ? body.package_ids.map(String)
+          : []
       if (packageIds.length !== mockStore.billingPackages.length) {
-        return fail('package_ids 须包含全部档位', 400)
+        return fail('orders 须包含全部档位', 400)
       }
       const knownIds = new Set(mockStore.billingPackages.map((pkg) => pkg.id))
       if (packageIds.some((id) => !knownIds.has(id))) return fail('存在未知档位 ID', 400)
       const now = Date.now()
-      packageIds.forEach((id, index) => {
-        const pkg = findPackage(id)
-        if (pkg) {
-          pkg.sort_order = index
-          pkg.updated_at = now
+      if (Array.isArray(body.orders)) {
+        for (const order of body.orders as { id: string; sort_order?: number }[]) {
+          const pkg = findPackage(order.id)
+          if (pkg) {
+            pkg.sort_order = Number(order.sort_order) || 0
+            pkg.updated_at = now
+          }
         }
-      })
+      } else {
+        packageIds.forEach((id, index) => {
+          const pkg = findPackage(id)
+          if (pkg) {
+            pkg.sort_order = index
+            pkg.updated_at = now
+          }
+        })
+      }
       addAuditLog({
         admin_user_id: auth.user.id,
         admin_email: auth.user.email,
@@ -75,7 +89,7 @@ export default [
         target_id: 'reorder',
         reason: '充值预设档位排序',
         before_snapshot: null,
-        after_snapshot: { package_ids: packageIds },
+        after_snapshot: { orders: body.orders ?? packageIds },
       })
       return success(packagesResponse())
     },

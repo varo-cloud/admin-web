@@ -75,7 +75,7 @@ const columns: DataTableColumns<AdminUserListItem> = [
   {
     title: '最近活跃',
     key: 'lastActiveAt',
-    render: (row) => formatRelativeTimestamp(row.lastActiveAt),
+    render: (row) => (row.lastActiveAt ? formatRelativeTimestamp(row.lastActiveAt) : '—'),
   },
   {
     title: '操作',

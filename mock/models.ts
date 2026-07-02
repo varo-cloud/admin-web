@@ -153,4 +153,17 @@ export default [
       return success({ id: model.id, active: model.active })
     },
   },
+  {
+    url: /\/api\/admin\/models\/([^/]+)$/,
+    method: 'delete',
+    response: ({ headers, url }: { headers: Record<string, string>; url: string }) => {
+      const auth = requireAdmin(headers)
+      if (!auth.ok) return auth.response
+      const modelId = decodeURIComponent(pathParam(url, /\/models\/([^/?]+)$/) ?? '')
+      const idx = mockStore.models.findIndex((m) => m.id === modelId)
+      if (idx < 0) return fail('模型不存在', 404)
+      mockStore.models.splice(idx, 1)
+      return success({ deleted: true })
+    },
+  },
 ] as MockMethod[]

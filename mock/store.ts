@@ -44,23 +44,19 @@ export interface MockGeneration {
   task_id: string
   user_id: string
   user_email: string
-  model_id: string
-  api_model_id: string
-  status: 'queued' | 'processing' | 'completed' | 'failed'
+  model: string
+  status: 'queued' | 'processing' | 'completed' | 'succeeded' | 'failed'
   cost_usd: number
   duration: number
-  invocation_channel: 'web' | 'api'
+  invocation_channel: 'web' | 'api' | 'playground'
   api_key_id: string | null
   api_key_prefix: string | null
   refunded: boolean
   input: Record<string, unknown>
   output: { type: string; url?: string } | null
+  output_url?: string
   billing_record_id: string | null
-  upstream_task_id: string | null
-  upstream_error: string | null
-  timeline: { status: string; at: number }[]
   created_at: number
-  completed_at: number | null
 }
 
 export interface MockTransaction {
@@ -68,11 +64,12 @@ export interface MockTransaction {
   user_id: string
   user_email: string
   amount_usd: number
-  package_id: string
-  status: 'pending' | 'completed' | 'failed' | 'expired'
-  payment_method: string
-  payment_detail: string
-  stripe_session_id: string
+  package_id?: string
+  status: 'pending' | 'completed' | 'failed' | 'expired' | 'partial'
+  provider: 'stripe' | 'nowpayments'
+  payment_method: string | null
+  payment_detail: string | null
+  provider_session_id: string | null
   receipt_url: string | null
   created_at: number
   completed_at: number | null
@@ -266,8 +263,7 @@ export const mockStore = {
       task_id: 'cgt-20260611195952-9l74f',
       user_id: 'user-001',
       user_email: 'alice@example.com',
-      model_id: 'seedance-t2v',
-      api_model_id: 'dreamina-seedance-2-0-260128',
+      model: 'dreamina-seedance-2-0-260128',
       status: 'failed',
       cost_usd: 2.0,
       duration: 5,
@@ -278,23 +274,14 @@ export const mockStore = {
       input: { prompt: 'A cat walking in rain', duration: 5, resolution: '720p' },
       output: null,
       billing_record_id: 'br-001',
-      upstream_task_id: 'cgt-upstream-xxx',
-      upstream_error: 'Upstream timeout',
-      timeline: [
-        { status: 'queued', at: daysAgo(1) },
-        { status: 'processing', at: daysAgo(1) + 3000 },
-        { status: 'failed', at: daysAgo(1) + 60000 },
-      ],
       created_at: daysAgo(1),
-      completed_at: daysAgo(1) + 60000,
     },
     {
       task_id: 'cgt-20260612103000-ab12',
       user_id: 'user-002',
       user_email: 'bob@example.com',
-      model_id: 'seedance-t2v',
-      api_model_id: 'dreamina-seedance-2-0-260128',
-      status: 'completed',
+      model: 'dreamina-seedance-2-0-260128',
+      status: 'succeeded',
       cost_usd: 0.36,
       duration: 5,
       invocation_channel: 'api',
@@ -303,16 +290,9 @@ export const mockStore = {
       refunded: false,
       input: { prompt: 'Ocean waves at sunset' },
       output: { type: 'video', url: 'https://example.com/video.mp4' },
+      output_url: 'https://example.com/video.mp4',
       billing_record_id: 'br-002',
-      upstream_task_id: null,
-      upstream_error: null,
-      timeline: [
-        { status: 'queued', at: daysAgo(0) },
-        { status: 'processing', at: daysAgo(0) + 5000 },
-        { status: 'completed', at: daysAgo(0) + 45000 },
-      ],
       created_at: daysAgo(0),
-      completed_at: daysAgo(0) + 45000,
     },
   ] as MockGeneration[],
 
@@ -324,9 +304,10 @@ export const mockStore = {
       amount_usd: 10,
       package_id: 'starter',
       status: 'completed',
-      payment_method: 'stripe',
+      provider: 'stripe',
+      payment_method: 'card',
       payment_detail: 'Visa ••4242',
-      stripe_session_id: 'cs_test_a1b2c3',
+      provider_session_id: 'cs_test_a1b2c3',
       receipt_url: 'https://pay.stripe.com/receipts/example',
       created_at: daysAgo(3),
       completed_at: daysAgo(3) + 60000,
@@ -338,9 +319,10 @@ export const mockStore = {
       amount_usd: 25,
       package_id: 'pro',
       status: 'pending',
-      payment_method: 'stripe',
+      provider: 'stripe',
+      payment_method: 'card',
       payment_detail: 'Mastercard ••5555',
-      stripe_session_id: 'cs_test_d4e5f6',
+      provider_session_id: 'cs_test_d4e5f6',
       receipt_url: null,
       created_at: daysAgo(0),
       completed_at: null,
@@ -352,9 +334,10 @@ export const mockStore = {
       amount_usd: 10,
       package_id: 'starter',
       status: 'pending',
-      payment_method: 'stripe',
-      payment_detail: 'Visa ••4242',
-      stripe_session_id: 'cs_test_g7h8i9',
+      provider: 'nowpayments',
+      payment_method: 'usdttrc20',
+      payment_detail: 'TXyz...abc',
+      provider_session_id: 'np_invoice_123',
       receipt_url: null,
       created_at: daysAgo(1),
       completed_at: null,
@@ -451,8 +434,8 @@ export const mockStore = {
   config: {
     credits_per_usd: 100,
     processing_fee: {
-      percent: 0.029,
-      fixed_usd: 0.3,
+      stripe: { percent: 0.029, fixed_usd: 0.3 },
+      nowpayments: { percent: 0, fixed_usd: 0 },
     },
   },
 

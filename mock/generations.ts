@@ -14,7 +14,7 @@ export default [
         const statuses = query.status.split(',')
         items = items.filter((g) => statuses.includes(g.status))
       }
-      if (query.model_id) items = items.filter((g) => g.model_id === query.model_id)
+      if (query.model_id) items = items.filter((g) => g.model === query.model_id)
       if (query.email) items = items.filter((g) => g.user_email.includes(query.email))
       if (query.invocation_channel) items = items.filter((g) => g.invocation_channel === query.invocation_channel)
       if (query.refunded === 'true') items = items.filter((g) => g.refunded)

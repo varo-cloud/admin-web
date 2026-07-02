@@ -37,6 +37,7 @@ const statusOptions = [
   { label: '全部状态', value: '' },
   { label: 'queued', value: 'queued' },
   { label: 'processing', value: 'processing' },
+  { label: 'succeeded', value: 'succeeded' },
   { label: 'completed', value: 'completed' },
   { label: 'failed', value: 'failed' },
 ]
@@ -44,6 +45,7 @@ const channelOptions = [
   { label: '全部渠道', value: '' },
   { label: 'web', value: 'web' },
   { label: 'api', value: 'api' },
+  { label: 'playground', value: 'playground' },
 ]
 const refundedOptions = [
   { label: '全部', value: '' },
@@ -86,7 +88,7 @@ const columns: DataTableColumns<AdminGenerationListItem> = [
     render: (r) =>
       h(NButton, { text: true, type: 'primary', onClick: () => router.push(`/users/${r.userId}`) }, () => r.userEmail),
   },
-  { title: '模型', key: 'modelId' },
+  { title: '模型', key: 'model' },
   { title: '状态', key: 'status', render: (r) => h(StatusTag, { status: r.status }) },
   { title: '费用', key: 'costUsd', render: (r) => formatUsd(r.costUsd) },
   { title: '时长', key: 'duration', render: (r) => `${r.duration}s` },

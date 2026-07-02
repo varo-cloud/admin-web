@@ -14,6 +14,17 @@ function validateProcessingFee(fee: Record<string, unknown>): string | null {
   return null
 }
 
+function validateProcessingFeeByProvider(fee: Record<string, unknown>): string | null {
+  if (!fee || typeof fee !== 'object') return 'processing_fee must be an object'
+  for (const provider of ['stripe', 'nowpayments']) {
+    const channel = fee[provider] as Record<string, unknown> | undefined
+    if (!channel) return `processing_fee.${provider} is required`
+    const error = validateProcessingFee(channel)
+    if (error) return `processing_fee.${provider}: ${error}`
+  }
+  return null
+}
+
 export default [
   {
     url: '/api/admin/config',
@@ -37,13 +48,19 @@ export default [
 
       if (body.processing_fee !== undefined) {
         const fee = body.processing_fee as Record<string, unknown>
-        const validationError = validateProcessingFee(fee)
+        const validationError = validateProcessingFeeByProvider(fee)
         if (validationError) return fail(validationError, 400)
 
         const before = { ...mockStore.config.processing_fee }
         mockStore.config.processing_fee = {
-          percent: Number(fee.percent),
-          fixed_usd: Number(fee.fixed_usd),
+          stripe: {
+            percent: Number((fee.stripe as Record<string, unknown>).percent),
+            fixed_usd: Number((fee.stripe as Record<string, unknown>).fixed_usd),
+          },
+          nowpayments: {
+            percent: Number((fee.nowpayments as Record<string, unknown>).percent),
+            fixed_usd: Number((fee.nowpayments as Record<string, unknown>).fixed_usd),
+          },
         }
         addAuditLog({
           action: 'config_update',

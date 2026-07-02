@@ -72,19 +72,17 @@ export default [
         status: user.status,
         balance_usd: user.balanceUsd,
         balance_credits: Math.round(user.balanceUsd * mockStore.config.credits_per_usd),
-        spent_this_month_usd: user.spentThisMonthUsd,
         created_at: user.createdAt,
-        api_keys: keys.map((k) => ({
-          id: k.id,
-          name: k.name,
-          prefix: k.prefix,
-          is_active: k.is_active,
-          total_calls: k.total_calls,
-          total_spend_usd: k.total_spend_usd,
-          last_used_at: k.last_used_at,
-          created_at: k.created_at,
-        })),
-        auto_top_up: { enabled: false, threshold_usd: 5, package_id: 'starter' },
+        api_keys: keys
+          .filter((k) => k.is_active)
+          .map((k) => ({
+            id: k.id,
+            name: k.name,
+            prefix: k.prefix,
+            is_active: k.is_active,
+            last_used_at: k.last_used_at,
+            created_at: k.created_at,
+          })),
         model_preferences: {
           favourites: ['seedance-t2v'],
           recent: [{ id: 'seedance-t2v', visited_at: user.lastActiveAt }],
@@ -197,7 +195,18 @@ export default [
       const auth = requireAdmin(headers)
       if (!auth.ok) return auth.response
       const userId = pathParam(url, /\/users\/([^/]+)\/generations/)
-      const items = mockStore.generations.filter((g) => g.user_id === userId)
+      const items = mockStore.generations
+        .filter((g) => g.user_id === userId)
+        .map(({ task_id, model, duration, cost_usd, status, invocation_channel, refunded, created_at }) => ({
+          task_id,
+          model,
+          duration,
+          cost_usd,
+          status,
+          invocation_channel,
+          refunded,
+          created_at,
+        }))
       return success(paginate(items, 0, 20))
     },
   },

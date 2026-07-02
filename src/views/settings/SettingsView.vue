@@ -10,28 +10,38 @@ import {
   NSpin,
   useMessage,
 } from 'naive-ui'
-import { fetchAdminConfig, updateProcessingFee, validateProcessingFee } from '@/api/config'
-import type { AdminConfig, ProcessingFee } from '@/types/admin'
+import {
+  fetchAdminConfig,
+  updateProcessingFee,
+  validateProcessingFeeByProvider,
+} from '@/api/config'
+import type { AdminConfig, ProcessingFeeByProvider } from '@/types/admin'
 import { formatUsd } from '@/utils/currency'
 
 const message = useMessage()
 const loading = ref(true)
 const saving = ref(false)
 const config = ref<AdminConfig | null>(null)
-const form = ref<ProcessingFee>({ percent: 0, fixedUsd: 0 })
+const form = ref<ProcessingFeeByProvider>({
+  stripe: { percent: 0, fixedUsd: 0 },
+  nowpayments: { percent: 0, fixedUsd: 0 },
+})
 
-const percentDisplay = computed(() => {
-  const pct = form.value.percent * 100
+function percentDisplay(fee: { percent: number }) {
+  const pct = fee.percent * 100
   if (!Number.isFinite(pct)) return '—'
   return `${pct.toFixed(2)}%`
-})
+}
 
 async function load() {
   loading.value = true
   try {
     const data = await fetchAdminConfig()
     config.value = data
-    form.value = { ...data.processingFee }
+    form.value = {
+      stripe: { ...data.processingFee.stripe },
+      nowpayments: { ...data.processingFee.nowpayments },
+    }
   } catch (e) {
     message.error(e instanceof Error ? e.message : '加载失败')
   } finally {
@@ -42,7 +52,7 @@ async function load() {
 onMounted(load)
 
 async function saveProcessingFee() {
-  const error = validateProcessingFee(form.value)
+  const error = validateProcessingFeeByProvider(form.value)
   if (error) {
     message.warning(error)
     return
@@ -52,7 +62,10 @@ async function saveProcessingFee() {
   try {
     const data = await updateProcessingFee(form.value)
     config.value = data
-    form.value = { ...data.processingFee }
+    form.value = {
+      stripe: { ...data.processingFee.stripe },
+      nowpayments: { ...data.processingFee.nowpayments },
+    }
     message.success('支付手续费配置已保存')
   } catch (e) {
     message.error(e instanceof Error ? e.message : '保存失败')
@@ -60,53 +73,75 @@ async function saveProcessingFee() {
     saving.value = false
   }
 }
+
+const providerCards = computed(() => [
+  {
+    key: 'stripe' as const,
+    title: 'Stripe（银行卡）',
+    hint: '例如 percent=0.029、fixed_usd=0.3 表示 2.9% + $0.30',
+  },
+  {
+    key: 'nowpayments' as const,
+    title: 'NOWPayments（加密货币）',
+    hint: '默认 0 表示按面额计价，不加 gross-up',
+  },
+])
 </script>
 
 <template>
   <div>
     <div class="page-header">
       <h1 class="page-title">系统配置</h1>
-      <p class="page-desc">管理充值支付手续费等全局参数</p>
+      <p class="page-desc">管理各支付渠道的充值手续费等全局参数</p>
     </div>
 
     <NSpin :show="loading">
       <template v-if="config">
-        <NCard title="支付手续费 processing_fee" style="margin-bottom: 16px">
-          <NAlert type="info" :bordered="false" style="margin-bottom: 16px">
-            充值订单在 Stripe 等渠道产生的额外手续费由 <code>percent</code>（比例）与
-            <code>fixed_usd</code>（每笔固定美元）共同决定。例如 percent=0.029、fixed_usd=0.3
-            表示 2.9% + $0.30。
-          </NAlert>
+        <NAlert type="info" :bordered="false" style="margin-bottom: 16px">
+          <code>processing_fee</code> 按支付渠道分开配置。Stripe 与加密货币各自 gross-up，互不影响。
+        </NAlert>
 
+        <NCard
+          v-for="card in providerCards"
+          :key="card.key"
+          :title="`支付手续费 · ${card.title}`"
+          style="margin-bottom: 16px"
+        >
+          <p class="card-hint">{{ card.hint }}</p>
           <NForm label-placement="left" label-width="180">
             <NFormItem label="比例 percent">
               <div class="field-row">
                 <NInputNumber
-                  v-model:value="form.percent"
+                  v-model:value="form[card.key].percent"
                   :min="0"
                   :max="0.999999"
                   :step="0.001"
                   :precision="6"
                   style="width: 200px"
                 />
-                <span class="field-hint">当前约 {{ percentDisplay }}（须 0 ≤ percent &lt; 1）</span>
+                <span class="field-hint">
+                  当前约 {{ percentDisplay(form[card.key]) }}（须 0 ≤ percent &lt; 1）
+                </span>
               </div>
             </NFormItem>
             <NFormItem label="固定费用 fixed_usd">
               <div class="field-row">
                 <NInputNumber
-                  v-model:value="form.fixedUsd"
+                  v-model:value="form[card.key].fixedUsd"
                   :min="0"
                   :step="0.01"
                   :precision="2"
                   style="width: 200px"
                 />
-                <span class="field-hint">每笔 {{ formatUsd(form.fixedUsd) }}（须 ≥ 0）</span>
+                <span class="field-hint">每笔 {{ formatUsd(form[card.key].fixedUsd) }}（须 ≥ 0）</span>
               </div>
             </NFormItem>
-            <NButton type="primary" :loading="saving" @click="saveProcessingFee">保存手续费配置</NButton>
           </NForm>
         </NCard>
+
+        <NButton type="primary" :loading="saving" style="margin-bottom: 16px" @click="saveProcessingFee">
+          保存手续费配置
+        </NButton>
 
         <NCard title="只读参数">
           <NForm label-placement="left" label-width="180">
@@ -124,10 +159,15 @@ async function saveProcessingFee() {
 </template>
 
 <style scoped>
-.page-desc {
+.page-desc,
+.card-hint {
   margin: 4px 0 0;
   color: #64748b;
   font-size: 14px;
+}
+.card-hint {
+  margin: 0 0 16px;
+  font-size: 13px;
 }
 .field-row {
   display: flex;

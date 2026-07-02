@@ -45,6 +45,7 @@ const form = ref<Partial<AdminModelDetail>>({
   capabilities: [],
   description: emptyLocalizedString(),
   thumbnailUrl: '',
+  iconUrl: '',
   modelPath: '',
   apiModelId: '',
   active: false,
@@ -215,6 +216,9 @@ onBeforeRouteLeave((_to, _from, next) => {
             </NFormItem>
             <NFormItem label="缩略图 URL">
               <NInput v-model:value="form.thumbnailUrl" @update:value="markDirty" />
+            </NFormItem>
+            <NFormItem label="图标 URL">
+              <NInput v-model:value="form.iconUrl" @update:value="markDirty" />
             </NFormItem>
             <NFormItem label="model_path *">
               <NInput v-model:value="form.modelPath" @update:value="markDirty" />

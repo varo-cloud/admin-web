@@ -7,13 +7,18 @@ import type {
 } from '@/types/admin'
 import type { GenerationStatus, InvocationChannel } from '@/types'
 
+function resolveModel(raw: Record<string, unknown>): string {
+  if (raw.model != null) return String(raw.model)
+  if (raw.model_id != null) return String(raw.model_id)
+  return ''
+}
+
 function mapListItem(raw: Record<string, unknown>): AdminGenerationListItem {
   return {
     taskId: String(raw.task_id),
     userId: String(raw.user_id),
     userEmail: String(raw.user_email),
-    modelId: String(raw.model_id),
-    apiModelId: String(raw.api_model_id),
+    model: resolveModel(raw),
     status: raw.status as GenerationStatus,
     costUsd: Number(raw.cost_usd),
     duration: Number(raw.duration),
@@ -21,24 +26,24 @@ function mapListItem(raw: Record<string, unknown>): AdminGenerationListItem {
     apiKeyPrefix: raw.api_key_prefix ? String(raw.api_key_prefix) : null,
     refunded: Boolean(raw.refunded),
     createdAt: Number(raw.created_at),
-    completedAt: raw.completed_at ? Number(raw.completed_at) : null,
   }
 }
 
 function mapDetail(raw: Record<string, unknown>): AdminGenerationDetail {
-  const base = mapListItem(raw)
+  const output = (raw.output as AdminGenerationDetail['output']) ?? null
+  const outputUrl =
+    raw.output_url != null
+      ? String(raw.output_url)
+      : output?.url != null
+        ? String(output.url)
+        : undefined
   return {
-    ...base,
+    ...mapListItem(raw),
     apiKeyId: raw.api_key_id ? String(raw.api_key_id) : null,
     input: (raw.input as Record<string, unknown>) ?? {},
-    output: (raw.output as AdminGenerationDetail['output']) ?? null,
+    output,
+    outputUrl,
     billingRecordId: raw.billing_record_id ? String(raw.billing_record_id) : null,
-    upstreamTaskId: raw.upstream_task_id ? String(raw.upstream_task_id) : null,
-    upstreamError: raw.upstream_error ? String(raw.upstream_error) : null,
-    timeline: ((raw.timeline as { status: GenerationStatus; at: number }[]) ?? []).map((t) => ({
-      status: t.status,
-      at: t.at,
-    })),
   }
 }
 

@@ -6,8 +6,6 @@ import {
   NCard,
   NCode,
   NSpin,
-  NSteps,
-  NStep,
   NTabPane,
   NTabs,
   useDialog,
@@ -17,7 +15,6 @@ import ConfirmReasonModal from '@/components/ConfirmReasonModal.vue'
 import StatusTag from '@/components/StatusTag.vue'
 import { fetchGenerationDetail, refundGeneration } from '@/api/generations'
 import { formatUsd } from '@/utils/currency'
-import { formatTimestamp } from '@/utils/time'
 import type { AdminGenerationDetail } from '@/types/admin'
 
 const route = useRoute()
@@ -31,6 +28,13 @@ const showRefund = ref(false)
 const canRefund = computed(
   () => detail.value && !detail.value.refunded && detail.value.costUsd > 0,
 )
+
+const outputUrl = computed(() => detail.value?.outputUrl ?? detail.value?.output?.url)
+
+const isCompleted = computed(() => {
+  const s = detail.value?.status
+  return s === 'completed' || s === 'succeeded'
+})
 
 async function load() {
   loading.value = true
@@ -62,13 +66,6 @@ function handleRefundRequest(reason: string) {
     },
   })
 }
-
-const stepIndex = computed(() => {
-  const s = detail.value?.status
-  if (s === 'queued') return 1
-  if (s === 'processing') return 2
-  return 3
-})
 </script>
 
 <template>
@@ -82,7 +79,7 @@ const stepIndex = computed(() => {
             费用 {{ formatUsd(detail.costUsd) }} · 已退款 {{ detail.refunded ? '是' : '否' }}
           </p>
           <p class="meta">
-            用户 {{ detail.userEmail }} · 渠道 {{ detail.invocationChannel }} · 模型 {{ detail.modelId }}
+            用户 {{ detail.userEmail }} · 渠道 {{ detail.invocationChannel }} · 模型 {{ detail.model }}
           </p>
         </div>
         <NButton v-if="canRefund" type="warning" @click="showRefund = true">退还费用</NButton>
@@ -91,27 +88,18 @@ const stepIndex = computed(() => {
       <NTabs type="line">
         <NTabPane name="overview" tab="概览">
           <NCard>
-            <p>API Model: {{ detail.apiModelId }}</p>
             <p v-if="detail.apiKeyPrefix">API Key: {{ detail.apiKeyPrefix }}</p>
-            <p v-if="detail.upstreamTaskId">上游 Task: {{ detail.upstreamTaskId }}</p>
+            <p v-if="detail.billingRecordId">账单记录: {{ detail.billingRecordId }}</p>
           </NCard>
         </NTabPane>
         <NTabPane name="input" tab="输入 JSON">
           <NCode :code="JSON.stringify(detail.input, null, 2)" language="json" word-wrap />
         </NTabPane>
         <NTabPane name="output" tab="输出">
-          <template v-if="detail.status === 'completed' && detail.output?.url">
-            <a :href="detail.output.url" target="_blank" rel="noopener">打开视频</a>
+          <template v-if="isCompleted && outputUrl">
+            <a :href="outputUrl" target="_blank" rel="noopener">打开视频</a>
           </template>
           <p v-else class="empty">暂无输出</p>
-        </NTabPane>
-        <NTabPane name="timeline" tab="时间线">
-          <NSteps :current="stepIndex" vertical>
-            <NStep v-for="(t, i) in detail.timeline" :key="i" :title="t.status" :description="formatTimestamp(t.at)" />
-          </NSteps>
-        </NTabPane>
-        <NTabPane name="error" tab="上游错误">
-          <p>{{ detail.upstreamError || '—' }}</p>
         </NTabPane>
       </NTabs>
     </div>

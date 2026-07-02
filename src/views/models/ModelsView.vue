@@ -14,7 +14,7 @@ import {
   useMessage,
   type DataTableColumns,
 } from 'naive-ui'
-import { duplicateModel, fetchModels, updateModelStatus } from '@/api/models'
+import { deleteModel, duplicateModel, fetchModels, updateModelStatus } from '@/api/models'
 import { formatUsd, formatPriceUnit } from '@/utils/currency'
 import { formatTimestamp } from '@/utils/time'
 import CopyText from '@/components/CopyText.vue'
@@ -26,6 +26,7 @@ const message = useMessage()
 const dialog = useDialog()
 const loading = ref(false)
 const copyingId = ref<string | null>(null)
+const deletingId = ref<string | null>(null)
 const items = ref<AdminModelListItem[]>([])
 const total = ref(0)
 const page = ref(1)
@@ -73,6 +74,27 @@ function copyModel(row: AdminModelListItem) {
         message.error(e instanceof Error ? e.message : '复制失败')
       } finally {
         copyingId.value = null
+      }
+    },
+  })
+}
+
+function deleteModelRow(row: AdminModelListItem) {
+  const label = resolveLocalizedString(row.displayName) || resolveLocalizedString(row.name) || row.id
+  dialog.warning({
+    title: '删除模型',
+    content: `确认删除「${label}」？此操作不可恢复。`,
+    positiveText: '删除',
+    onPositiveClick: async () => {
+      deletingId.value = row.id
+      try {
+        await deleteModel(row.id)
+        message.success('已删除')
+        await load()
+      } catch (e) {
+        message.error(e instanceof Error ? e.message : '删除失败')
+      } finally {
+        deletingId.value = null
       }
     },
   })
@@ -141,10 +163,21 @@ const columns = computed<DataTableColumns<AdminModelListItem>>(() => [
           {
             size: 'small',
             loading: copyingId.value === r.id,
-            disabled: copyingId.value !== null && copyingId.value !== r.id,
+            disabled: (copyingId.value !== null && copyingId.value !== r.id) || deletingId.value !== null,
             onClick: () => copyModel(r),
           },
           () => '复制',
+        ),
+        h(
+          NButton,
+          {
+            size: 'small',
+            type: 'error',
+            loading: deletingId.value === r.id,
+            disabled: (deletingId.value !== null && deletingId.value !== r.id) || copyingId.value !== null,
+            onClick: () => deleteModelRow(r),
+          },
+          () => '删除',
         ),
         h(NSwitch, {
           value: r.active,

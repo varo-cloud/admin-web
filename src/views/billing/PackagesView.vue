@@ -18,7 +18,6 @@ import {
   type DataTableColumns,
 } from 'naive-ui'
 import LocaleTabs from '@/components/LocaleTabs.vue'
-import { fetchTransactions } from '@/api/billing'
 import {
   billingPackageToPayload,
   createBillingPackage,
@@ -44,7 +43,6 @@ const drawerShow = ref(false)
 const locale = ref<ContentLocale>('en-US')
 const packages = ref<BillingPackage[]>([])
 const orderDirty = ref(false)
-const pendingPresetIds = ref<Set<string>>(new Set())
 const editing = ref<Partial<BillingPackage> & { isNew?: boolean } | null>(null)
 
 function defaultPackage(): Partial<BillingPackage> & { isNew: boolean } {
@@ -58,20 +56,10 @@ function defaultPackage(): Partial<BillingPackage> & { isNew: boolean } {
   }
 }
 
-async function loadPendingPresets() {
-  try {
-    const res = await fetchTransactions({ status: 'pending', limit: 100 })
-    pendingPresetIds.value = new Set(res.items.map((t) => t.packageId).filter(Boolean))
-  } catch {
-    pendingPresetIds.value = new Set()
-  }
-}
-
 async function load() {
   loading.value = true
   try {
-    const [data] = await Promise.all([fetchBillingPackages(), loadPendingPresets()])
-    packages.value = data
+    packages.value = await fetchBillingPackages()
     orderDirty.value = false
   } catch (e) {
     message.error(e instanceof Error ? e.message : '加载失败')
@@ -146,7 +134,9 @@ function movePackage(index: number, direction: -1 | 1) {
 async function saveOrder() {
   reordering.value = true
   try {
-    packages.value = await reorderBillingPackages(packages.value.map((p) => p.id))
+    packages.value = await reorderBillingPackages(
+      packages.value.map((p, index) => ({ id: p.id, sortOrder: index })),
+    )
     orderDirty.value = false
     message.success('排序已保存')
   } catch (e) {
@@ -236,9 +226,8 @@ const columns: DataTableColumns<BillingPackage> = [
   {
     title: '操作',
     key: 'actions',
-    render: (r) => {
-      const hasPending = pendingPresetIds.value.has(r.id)
-      return h('div', { style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap' }, [
+    render: (r) =>
+      h('div', { style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap' }, [
         h(NButton, { size: 'small', onClick: () => openEditor(r) }, () => '编辑'),
         h(NSwitch, { value: r.active, size: 'small', onUpdateValue: (v: boolean) => toggleStatus(r, v) }),
         h(
@@ -246,14 +235,11 @@ const columns: DataTableColumns<BillingPackage> = [
           {
             size: 'small',
             type: 'error',
-            disabled: hasPending,
-            title: hasPending ? '存在 pending 充值订单，无法删除' : undefined,
             onClick: () => removePackage(r),
           },
           () => '删除',
         ),
-      ])
-    },
+      ]),
   },
 ]
 

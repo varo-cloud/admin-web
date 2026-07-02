@@ -74,9 +74,11 @@ export async function deleteBillingPackage(id: string) {
   return unwrap(http.delete(`/admin/billing/packages/${encodeURIComponent(id)}`))
 }
 
-export async function reorderBillingPackages(packageIds: string[]): Promise<BillingPackage[]> {
+export async function reorderBillingPackages(orders: { id: string; sortOrder: number }[]): Promise<BillingPackage[]> {
   const raw = await unwrap<ApiBillingPackage[]>(
-    http.put('/admin/billing/packages/reorder', { package_ids: packageIds }),
+    http.put('/admin/billing/packages/reorder', {
+      orders: orders.map((o) => ({ id: o.id, sort_order: o.sortOrder })),
+    }),
   )
   return [...raw].sort((a, b) => a.sort_order - b.sort_order).map(mapPackage)
 }

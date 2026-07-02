@@ -21,6 +21,7 @@ interface ApiModelListItem {
 interface ApiModelDetail extends ApiModelListItem {
   description: LocalizedString
   thumbnail_url?: string
+  icon_url?: string
   model_path: string
   api_model_id: string
   standard_price_usd?: number
@@ -29,7 +30,7 @@ interface ApiModelDetail extends ApiModelListItem {
   per_run_price_usd?: number
   runs_per_ten_usd?: number
   input_schema: Record<string, unknown>
-  readme_md?: LocalizedString
+  readme_md?: LocalizedString | string
   faq: ApiFaqItem[]
   created_at: number
 }
@@ -63,11 +64,18 @@ function mapListItem(raw: ApiModelListItem): AdminModelListItem {
   }
 }
 
+function mapReadmeMd(raw: LocalizedString | string | undefined): LocalizedString | undefined {
+  if (raw == null) return undefined
+  if (typeof raw === 'string') return raw.trim() ? { 'en-US': raw } : undefined
+  return mapApiLocalized(raw)
+}
+
 function mapDetail(raw: ApiModelDetail): AdminModelDetail {
   return {
     ...mapListItem(raw),
     description: mapApiLocalized(raw.description),
     thumbnailUrl: raw.thumbnail_url,
+    iconUrl: raw.icon_url,
     modelPath: raw.model_path,
     apiModelId: raw.api_model_id,
     standardPriceUsd: raw.standard_price_usd,
@@ -76,7 +84,7 @@ function mapDetail(raw: ApiModelDetail): AdminModelDetail {
     perRunPriceUsd: raw.per_run_price_usd,
     runsPerTenUsd: raw.runs_per_ten_usd,
     inputSchema: raw.input_schema,
-    readmeMd: raw.readme_md ? mapApiLocalized(raw.readme_md) : undefined,
+    readmeMd: mapReadmeMd(raw.readme_md),
     faq: (raw.faq ?? []).map(mapFaqItem),
     createdAt: raw.created_at,
   }
@@ -140,33 +148,44 @@ export async function updateModelStatus(modelId: string, active: boolean) {
   return unwrap(http.patch(`/admin/models/${encodeURIComponent(modelId)}/status`, { active }))
 }
 
+export async function deleteModel(modelId: string) {
+  return unwrap(http.delete(`/admin/models/${encodeURIComponent(modelId)}`))
+}
+
 export function modelToPayload(model: Partial<AdminModelDetail>): Record<string, unknown> {
-  return {
-    id: model.id,
-    name: localizedStringToPayload(model.name),
-    display_name: model.displayName ? localizedStringToPayload(model.displayName) : undefined,
-    provider: model.provider,
-    capabilities: model.capabilities,
-    description: localizedStringToPayload(model.description),
-    thumbnail_url: model.thumbnailUrl,
-    model_path: model.modelPath,
-    api_model_id: model.apiModelId,
-    active: model.active,
-    is_hot: model.isHot,
-    is_new: model.isNew,
-    sort_order: model.sortOrder,
-    starting_price_usd: model.startingPriceUsd,
-    standard_price_usd: model.standardPriceUsd,
-    price_unit: model.priceUnit,
-    price_detail: model.priceDetail,
-    discount_percent: model.discountPercent,
-    per_run_price_usd: model.perRunPriceUsd,
-    runs_per_ten_usd: model.runsPerTenUsd,
-    input_schema: model.inputSchema,
-    readme_md: model.readmeMd ? localizedStringToPayload(model.readmeMd) : undefined,
-    faq: model.faq?.map((item) => ({
+  const payload: Record<string, unknown> = {}
+  if (model.id !== undefined) payload.id = model.id
+  if (model.name !== undefined) payload.name = localizedStringToPayload(model.name)
+  if (model.displayName !== undefined) {
+    payload.display_name = model.displayName ? localizedStringToPayload(model.displayName) : undefined
+  }
+  if (model.provider !== undefined) payload.provider = model.provider
+  if (model.capabilities !== undefined) payload.capabilities = model.capabilities
+  if (model.description !== undefined) payload.description = localizedStringToPayload(model.description)
+  if (model.thumbnailUrl !== undefined) payload.thumbnail_url = model.thumbnailUrl
+  if (model.iconUrl !== undefined) payload.icon_url = model.iconUrl
+  if (model.modelPath !== undefined) payload.model_path = model.modelPath
+  if (model.apiModelId !== undefined) payload.api_model_id = model.apiModelId
+  if (model.active !== undefined) payload.active = model.active
+  if (model.isHot !== undefined) payload.is_hot = model.isHot
+  if (model.isNew !== undefined) payload.is_new = model.isNew
+  if (model.sortOrder !== undefined) payload.sort_order = model.sortOrder
+  if (model.startingPriceUsd !== undefined) payload.starting_price_usd = model.startingPriceUsd
+  if (model.standardPriceUsd !== undefined) payload.standard_price_usd = model.standardPriceUsd
+  if (model.priceUnit !== undefined) payload.price_unit = model.priceUnit
+  if (model.priceDetail !== undefined) payload.price_detail = model.priceDetail
+  if (model.discountPercent !== undefined) payload.discount_percent = model.discountPercent
+  if (model.perRunPriceUsd !== undefined) payload.per_run_price_usd = model.perRunPriceUsd
+  if (model.runsPerTenUsd !== undefined) payload.runs_per_ten_usd = model.runsPerTenUsd
+  if (model.inputSchema !== undefined) payload.input_schema = model.inputSchema
+  if (model.readmeMd !== undefined) {
+    payload.readme_md = model.readmeMd ? localizedStringToPayload(model.readmeMd) : undefined
+  }
+  if (model.faq !== undefined) {
+    payload.faq = model.faq.map((item) => ({
       question: localizedStringToPayload(item.question),
       answer: localizedStringToPayload(item.answer),
-    })),
+    }))
   }
+  return payload
 }

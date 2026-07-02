@@ -1,5 +1,7 @@
 import { http, unwrap } from './http'
-import type { AdminConfig, ProcessingFee } from '@/types/admin'
+import type { AdminConfig, ProcessingFee, ProcessingFeeByProvider } from '@/types/admin'
+
+const DEFAULT_FEE: ProcessingFee = { percent: 0, fixedUsd: 0 }
 
 function mapProcessingFee(raw: Record<string, unknown>): ProcessingFee {
   return {
@@ -8,11 +10,23 @@ function mapProcessingFee(raw: Record<string, unknown>): ProcessingFee {
   }
 }
 
+function mapProcessingFeeByProvider(raw: Record<string, unknown> | undefined): ProcessingFeeByProvider {
+  const stripe = raw?.stripe as Record<string, unknown> | undefined
+  const nowpayments = raw?.nowpayments as Record<string, unknown> | undefined
+  return {
+    stripe: stripe ? mapProcessingFee(stripe) : { ...DEFAULT_FEE },
+    nowpayments: nowpayments ? mapProcessingFee(nowpayments) : { ...DEFAULT_FEE },
+  }
+}
+
+function feeToPayload(fee: ProcessingFee): Record<string, number> {
+  return { percent: fee.percent, fixed_usd: fee.fixedUsd }
+}
+
 function mapConfig(raw: Record<string, unknown>): AdminConfig {
-  const fee = raw.processing_fee as Record<string, unknown> | undefined
   return {
     creditsPerUsd: Number(raw.credits_per_usd),
-    processingFee: fee ? mapProcessingFee(fee) : { percent: 0, fixedUsd: 0 },
+    processingFee: mapProcessingFeeByProvider(raw.processing_fee as Record<string, unknown> | undefined),
   }
 }
 
@@ -21,12 +35,12 @@ export async function fetchAdminConfig(): Promise<AdminConfig> {
   return mapConfig(raw)
 }
 
-export async function updateProcessingFee(fee: ProcessingFee): Promise<AdminConfig> {
+export async function updateProcessingFee(fee: ProcessingFeeByProvider): Promise<AdminConfig> {
   const raw = await unwrap<Record<string, unknown>>(
     http.put('/admin/config', {
       processing_fee: {
-        percent: fee.percent,
-        fixed_usd: fee.fixedUsd,
+        stripe: feeToPayload(fee.stripe),
+        nowpayments: feeToPayload(fee.nowpayments),
       },
     }),
   )
@@ -39,6 +53,14 @@ export function validateProcessingFee(fee: ProcessingFee): string | null {
   }
   if (!Number.isFinite(fee.fixedUsd) || fee.fixedUsd < 0) {
     return '固定费用 fixed_usd 须 ≥ 0'
+  }
+  return null
+}
+
+export function validateProcessingFeeByProvider(fee: ProcessingFeeByProvider): string | null {
+  for (const provider of ['stripe', 'nowpayments'] as const) {
+    const error = validateProcessingFee(fee[provider])
+    if (error) return `${provider}: ${error}`
   }
   return null
 }
