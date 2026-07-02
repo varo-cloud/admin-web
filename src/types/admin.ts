@@ -237,21 +237,14 @@ export interface PricingItem {
   sortOrder: number
 }
 
-export interface CreditPackage {
-  id: string
-  priceUsd: number
-  credits: number
-  stripePriceId: string
+export interface ProcessingFee {
+  percent: number
+  fixedUsd: number
 }
 
-export interface SystemConfig {
+export interface AdminConfig {
   creditsPerUsd: number
-  creditPackages: CreditPackage[]
-  signupBonusUsd: number
-  initialBalanceUsd: number
-  defaultRateLimitRpm: number
-  uploadMaxSizeMb: number
-  secrets: Record<string, { configured: boolean }>
+  processingFee: ProcessingFee
 }
 
 export interface AuditLog {

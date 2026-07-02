@@ -450,18 +450,9 @@ export const mockStore = {
 
   config: {
     credits_per_usd: 100,
-    credit_packages: [
-      { id: 'starter', price_usd: 10, credits: 1000, stripe_price_id: 'price_starter' },
-      { id: 'pro', price_usd: 25, credits: 3000, stripe_price_id: 'price_pro' },
-      { id: 'business', price_usd: 50, credits: 7000, stripe_price_id: 'price_business' },
-    ],
-    signup_bonus_usd: 3,
-    initial_balance_usd: 0,
-    default_rate_limit_rpm: 60,
-    upload_max_size_mb: 50,
-    secrets: {
-      ark_api_key: { configured: true },
-      turnstile_secret_key: { configured: true },
+    processing_fee: {
+      percent: 0.029,
+      fixed_usd: 0.3,
     },
   },
 

@@ -1,30 +1,37 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import {
+  NAlert,
   NButton,
   NCard,
   NForm,
   NFormItem,
-  NInput,
   NInputNumber,
   NSpin,
-  useDialog,
   useMessage,
 } from 'naive-ui'
-import { fetchConfig, updateConfig } from '@/api/config'
-import type { SystemConfig } from '@/types/admin'
+import { fetchAdminConfig, updateProcessingFee, validateProcessingFee } from '@/api/config'
+import type { AdminConfig, ProcessingFee } from '@/types/admin'
+import { formatUsd } from '@/utils/currency'
 
 const message = useMessage()
-const dialog = useDialog()
 const loading = ref(true)
 const saving = ref(false)
-const config = ref<SystemConfig | null>(null)
-const secretInputs = ref<Record<string, string>>({})
+const config = ref<AdminConfig | null>(null)
+const form = ref<ProcessingFee>({ percent: 0, fixedUsd: 0 })
+
+const percentDisplay = computed(() => {
+  const pct = form.value.percent * 100
+  if (!Number.isFinite(pct)) return '—'
+  return `${pct.toFixed(2)}%`
+})
 
 async function load() {
   loading.value = true
   try {
-    config.value = await fetchConfig()
+    const data = await fetchAdminConfig()
+    config.value = data
+    form.value = { ...data.processingFee }
   } catch (e) {
     message.error(e instanceof Error ? e.message : '加载失败')
   } finally {
@@ -34,58 +41,24 @@ async function load() {
 
 onMounted(load)
 
-async function saveBilling() {
-  if (!config.value) return
+async function saveProcessingFee() {
+  const error = validateProcessingFee(form.value)
+  if (error) {
+    message.warning(error)
+    return
+  }
+
   saving.value = true
   try {
-    await updateConfig({
-      credits_per_usd: config.value.creditsPerUsd,
-      signup_bonus_usd: config.value.signupBonusUsd,
-      default_rate_limit_rpm: config.value.defaultRateLimitRpm,
-      upload_max_size_mb: config.value.uploadMaxSizeMb,
-    })
-    message.success('配置已保存')
+    const data = await updateProcessingFee(form.value)
+    config.value = data
+    form.value = { ...data.processingFee }
+    message.success('支付手续费配置已保存')
   } catch (e) {
     message.error(e instanceof Error ? e.message : '保存失败')
   } finally {
     saving.value = false
   }
-}
-
-async function savePackages() {
-  if (!config.value) return
-  saving.value = true
-  try {
-    await updateConfig({
-      credit_packages: config.value.creditPackages.map((p) => ({
-        id: p.id,
-        price_usd: p.priceUsd,
-        credits: p.credits,
-        stripe_price_id: p.stripePriceId,
-      })),
-    })
-    message.success('套餐已保存')
-  } catch (e) {
-    message.error(e instanceof Error ? e.message : '保存失败')
-  } finally {
-    saving.value = false
-  }
-}
-
-function saveSecret(key: string) {
-  const value = secretInputs.value[key]?.trim()
-  if (!value) return message.warning('请输入新值')
-  dialog.warning({
-    title: '更新密钥',
-    content: `确认更新 ${key}？`,
-    positiveText: '确认',
-    onPositiveClick: async () => {
-      await updateConfig({ secrets: { [key]: value } })
-      message.success('密钥已更新')
-      secretInputs.value[key] = ''
-      await load()
-    },
-  })
 }
 </script>
 
@@ -93,47 +66,57 @@ function saveSecret(key: string) {
   <div>
     <div class="page-header">
       <h1 class="page-title">系统配置</h1>
+      <p class="page-desc">管理充值支付手续费等全局参数</p>
     </div>
 
     <NSpin :show="loading">
       <template v-if="config">
-        <NCard title="计费" style="margin-bottom: 16px">
-          <NForm label-placement="left" label-width="160">
-            <NFormItem label="credits_per_usd">
-              <NInputNumber v-model:value="config.creditsPerUsd" />
+        <NCard title="支付手续费 processing_fee" style="margin-bottom: 16px">
+          <NAlert type="info" :bordered="false" style="margin-bottom: 16px">
+            充值订单在 Stripe 等渠道产生的额外手续费由 <code>percent</code>（比例）与
+            <code>fixed_usd</code>（每笔固定美元）共同决定。例如 percent=0.029、fixed_usd=0.3
+            表示 2.9% + $0.30。
+          </NAlert>
+
+          <NForm label-placement="left" label-width="180">
+            <NFormItem label="比例 percent">
+              <div class="field-row">
+                <NInputNumber
+                  v-model:value="form.percent"
+                  :min="0"
+                  :max="0.999999"
+                  :step="0.001"
+                  :precision="6"
+                  style="width: 200px"
+                />
+                <span class="field-hint">当前约 {{ percentDisplay }}（须 0 ≤ percent &lt; 1）</span>
+              </div>
             </NFormItem>
-            <NFormItem label="注册体验金 USD">
-              <NInputNumber v-model:value="config.signupBonusUsd" :step="0.01" />
+            <NFormItem label="固定费用 fixed_usd">
+              <div class="field-row">
+                <NInputNumber
+                  v-model:value="form.fixedUsd"
+                  :min="0"
+                  :step="0.01"
+                  :precision="2"
+                  style="width: 200px"
+                />
+                <span class="field-hint">每笔 {{ formatUsd(form.fixedUsd) }}（须 ≥ 0）</span>
+              </div>
             </NFormItem>
-            <NFormItem label="default_rate_limit_rpm">
-              <NInputNumber v-model:value="config.defaultRateLimitRpm" />
-            </NFormItem>
-            <NFormItem label="upload_max_size_mb">
-              <NInputNumber v-model:value="config.uploadMaxSizeMb" />
-            </NFormItem>
-            <NButton type="primary" :loading="saving" @click="saveBilling">保存计费配置</NButton>
+            <NButton type="primary" :loading="saving" @click="saveProcessingFee">保存手续费配置</NButton>
           </NForm>
         </NCard>
 
-        <NCard title="套餐 credit_packages" style="margin-bottom: 16px">
-          <div v-for="pkg in config.creditPackages" :key="pkg.id" class="pkg-row">
-            <strong>{{ pkg.id }}</strong>
-            <NInputNumber v-model:value="pkg.priceUsd" placeholder="price_usd" />
-            <NInputNumber v-model:value="pkg.credits" placeholder="credits" />
-            <NInput v-model:value="pkg.stripePriceId" placeholder="stripe_price_id" />
-          </div>
-          <NButton type="primary" :loading="saving" style="margin-top: 12px" @click="savePackages">
-            保存套餐
-          </NButton>
-        </NCard>
-
-        <NCard title="密钥">
-          <div v-for="(meta, key) in config.secrets" :key="key" class="secret-row">
-            <span>{{ key }}</span>
-            <span :class="meta.configured ? 'ok' : 'no'">{{ meta.configured ? '已配置' : '未配置' }}</span>
-            <NInput v-model:value="secretInputs[key]" placeholder="输入新值（不回显）" style="width: 240px" />
-            <NButton size="small" @click="saveSecret(String(key))">更新</NButton>
-          </div>
+        <NCard title="只读参数">
+          <NForm label-placement="left" label-width="180">
+            <NFormItem label="credits_per_usd">
+              <div class="field-row">
+                <NInputNumber :value="config.creditsPerUsd" disabled style="width: 200px" />
+                <span class="field-hint">$1 兑换 credits 数，由系统固定为 100，不可通过 Admin 修改</span>
+              </div>
+            </NFormItem>
+          </NForm>
         </NCard>
       </template>
     </NSpin>
@@ -141,23 +124,25 @@ function saveSecret(key: string) {
 </template>
 
 <style scoped>
-.pkg-row {
-  display: grid;
-  grid-template-columns: 100px 1fr 1fr 1fr;
-  gap: 8px;
-  align-items: center;
-  margin-bottom: 8px;
+.page-desc {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 14px;
 }
-.secret-row {
+.field-row {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 12px;
+  flex-wrap: wrap;
 }
-.ok {
-  color: #16a34a;
+.field-hint {
+  color: #64748b;
+  font-size: 13px;
 }
-.no {
-  color: #94a3b8;
+code {
+  font-size: 12px;
+  background: #f1f5f9;
+  padding: 1px 4px;
+  border-radius: 4px;
 }
 </style>
