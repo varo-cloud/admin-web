@@ -1,28 +1,50 @@
+function resolveApiBaseUrl(configured: string): string {
+  const value = configured.trim()
+
+  if (/^https?:\/\//i.test(value)) {
+    return value.replace(/\/$/, '')
+  }
+
+  if (value.startsWith('/')) {
+    return value.replace(/\/$/, '')
+  }
+
+  const apiPath = value.replace(/^\//, '')
+  return `${import.meta.env.BASE_URL}${apiPath}`.replace(/\/$/, '')
+}
+
 /**
- * Resolve API base path for subpath deployments (e.g. GitHub Pages).
- *
- * VITE_API_BASE_URL=/api points to the domain-root API prefix (shared with main site),
- * not under the admin app BASE_URL.
- * Local / GitHub Pages root site: /api
+ * Admin API base (default axios client). Deployed: https://staging.admin.varo.cloud/api
  */
 export function apiBaseUrl(): string {
-  const configured = (import.meta.env.VITE_API_BASE_URL || 'api').trim()
+  return resolveApiBaseUrl(import.meta.env.VITE_API_BASE_URL || 'api')
+}
 
-  if (/^https?:\/\//i.test(configured)) {
-    return configured.replace(/\/$/, '')
-  }
-
-  if (configured.startsWith('/')) {
-    return configured.replace(/\/$/, '')
-  }
-
-  const apiPath = configured.replace(/^\//, '')
-  return `${import.meta.env.BASE_URL}${apiPath}`.replace(/\/$/, '')
+/**
+ * User / auth API base (profile, token refresh). Deployed: https://staging.api.varo.cloud/api
+ * Falls back to VITE_API_BASE_URL when unset (local dev proxy on /api).
+ */
+export function userApiBaseUrl(): string {
+  const configured = import.meta.env.VITE_USER_API_BASE_URL?.trim()
+  if (configured) return resolveApiBaseUrl(configured)
+  return apiBaseUrl()
 }
 
 /** Map mock route like `/api/models/:id` to the deployed API prefix. */
 export function toProdMockUrl(mockUrl: string): string {
   const base = apiBaseUrl()
+
+  if (mockUrl.startsWith('/api')) {
+    return mockUrl.replace(/^\/api/, base)
+  }
+
+  const normalized = mockUrl.startsWith('/') ? mockUrl : `/${mockUrl}`
+  return `${base}${normalized}`
+}
+
+/** Map user/auth mock routes to the user API prefix. */
+export function toProdUserMockUrl(mockUrl: string): string {
+  const base = userApiBaseUrl()
 
   if (mockUrl.startsWith('/api')) {
     return mockUrl.replace(/^\/api/, base)

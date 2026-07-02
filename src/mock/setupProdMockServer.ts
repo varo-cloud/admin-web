@@ -1,8 +1,8 @@
 import axios, { getAdapter, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios'
 import type { MockMethod } from 'vite-plugin-mock'
 import { match as matchPath } from 'path-to-regexp'
-import { http } from '@/api/http'
-import { toProdMockUrl } from '@/utils/apiBaseUrl'
+import { http, userHttp } from '@/api/http'
+import { toProdMockUrl, toProdUserMockUrl } from '@/utils/apiBaseUrl'
 import authMock from '../../mock/auth'
 import dashboardMock from '../../mock/dashboard'
 import usersMock from '../../mock/users'
@@ -64,6 +64,14 @@ function resolveRequestUrl(config: InternalAxiosRequestConfig): string {
   return combined
 }
 
+function mockDeployUrl(mockUrl: string | RegExp): string {
+  if (mockUrl instanceof RegExp) return mockUrl.source
+  if (mockUrl.includes('/user/') || mockUrl.includes('/auth/')) {
+    return toProdUserMockUrl(mockUrl)
+  }
+  return toProdMockUrl(mockUrl)
+}
+
 function matchMockUrl(mockUrl: string | RegExp, pathname: string): Record<string, string> | false {
   if (mockUrl instanceof RegExp) {
     return mockUrl.test(pathname) ? {} : false
@@ -103,7 +111,7 @@ function resolveMockResponse(config: InternalAxiosRequestConfig): unknown | null
     const mockMethod = (mock.method ?? 'get').toLowerCase()
     if (mockMethod !== method) continue
 
-    const matched = matchMockUrl(toProdMockUrl(mock.url), pathname)
+    const matched = matchMockUrl(mockDeployUrl(mock.url), pathname)
     if (matched === false) continue
 
     Object.assign(query, matched)
@@ -126,7 +134,7 @@ function resolveMockResponse(config: InternalAxiosRequestConfig): unknown | null
 export async function setupProdMockServer(): Promise<void> {
   const realAdapter = getAdapter(http.defaults.adapter ?? axios.defaults.adapter)
 
-  http.defaults.adapter = async (config): Promise<AxiosResponse> => {
+  const mockAdapter = async (config: InternalAxiosRequestConfig): Promise<AxiosResponse> => {
     const mockData = resolveMockResponse(config)
     if (mockData !== null) {
       return {
@@ -140,4 +148,7 @@ export async function setupProdMockServer(): Promise<void> {
     }
     return realAdapter(config)
   }
+
+  http.defaults.adapter = mockAdapter
+  userHttp.defaults.adapter = mockAdapter
 }

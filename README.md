@@ -68,7 +68,8 @@ npm run preview:pages
 
 - `VITE_BASE=/admin-web/` — 子路径部署
 - `VITE_USE_MOCK=false` — 请求真实后端
-- `VITE_API_BASE_URL=https://staging.admin.varo.cloud/api` — Admin API 地址
+- `VITE_API_BASE_URL=https://staging.admin.varo.cloud/api` — Admin API
+- `VITE_USER_API_BASE_URL=https://staging.api.varo.cloud/api` — User profile / auth
 
 本地预览时可在 `.env.production` 中配置相同变量后执行 `npm run preview:pages`。
 
@@ -77,7 +78,8 @@ npm run preview:pages
 | 变量 | 说明 |
 |---|---|
 | `VITE_USE_MOCK` | 开发时是否启用 mock（`true` / `false`） |
-| `VITE_API_BASE_URL` | API 根路径；部署为 `https://staging.admin.varo.cloud/api` |
+| `VITE_API_BASE_URL` | Admin API 根路径；部署为 `https://staging.admin.varo.cloud/api` |
+| `VITE_USER_API_BASE_URL` | User/auth API；部署为 `https://staging.api.varo.cloud/api` |
 | `VITE_DEV_USER_API_PROXY_TARGET` | **仅 dev**：`/api/user`、`/api/auth` 代理目标 |
 | `VITE_DEV_ADMIN_API_PROXY_TARGET` | **仅 dev**：`/api/admin/*` 代理目标 |
 | `VITE_DEV_API_PROXY_TARGET` | **仅 dev**：单后端模式，所有 `/api` 代理到同一目标 |
