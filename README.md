@@ -64,17 +64,20 @@ npm run preview:pages
 # 访问 http://localhost:4173/admin-web/
 ```
 
-生产构建使用 `.env.production`：
+生产构建（GitHub Pages）在 workflow 中注入：
 
 - `VITE_BASE=/admin-web/` — 子路径部署
-- `VITE_USE_MOCK=true` — 静态站点无后端，浏览器端 Mock 拦截 API
+- `VITE_USE_MOCK=false` — 请求真实后端
+- `VITE_API_BASE_URL=https://staging.admin.varo.cloud/api` — Admin API 地址
+
+本地预览时可在 `.env.production` 中配置相同变量后执行 `npm run preview:pages`。
 
 ## 环境变量
 
 | 变量 | 说明 |
 |---|---|
 | `VITE_USE_MOCK` | 开发时是否启用 mock（`true` / `false`） |
-| `VITE_API_BASE_URL` | API 根路径，本地代理一般为 `/api` |
+| `VITE_API_BASE_URL` | API 根路径；部署为 `https://staging.admin.varo.cloud/api` |
 | `VITE_DEV_USER_API_PROXY_TARGET` | **仅 dev**：`/api/user`、`/api/auth` 代理目标 |
 | `VITE_DEV_ADMIN_API_PROXY_TARGET` | **仅 dev**：`/api/admin/*` 代理目标 |
 | `VITE_DEV_API_PROXY_TARGET` | **仅 dev**：单后端模式，所有 `/api` 代理到同一目标 |

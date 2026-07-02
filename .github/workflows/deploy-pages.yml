@@ -31,6 +31,10 @@ jobs:
         run: npm ci
 
       - name: Build
+        env:
+          VITE_USE_MOCK: 'false'
+          VITE_BASE: /admin-web/
+          VITE_API_BASE_URL: https://staging.admin.varo.cloud/api
         run: npm run build
 
       - name: Setup SPA fallback
