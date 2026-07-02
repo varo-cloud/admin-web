@@ -108,6 +108,27 @@ export async function createModel(payload: Record<string, unknown>): Promise<Adm
   return mapDetail(raw)
 }
 
+function suggestDuplicateModelId(sourceId: string, existingIds: Set<string>): string {
+  const base = `${sourceId}-copy`
+  if (!existingIds.has(base)) return base
+  let i = 2
+  while (existingIds.has(`${base}-${i}`)) i++
+  return `${base}-${i}`
+}
+
+/** Clone a model with the same fields; new model is created as inactive (draft). */
+export async function duplicateModel(sourceId: string): Promise<AdminModelDetail> {
+  const source = await fetchModelDetail(sourceId)
+  const candidates = await fetchModels({ q: `${sourceId}-copy`, limit: 100 })
+  const newId = suggestDuplicateModelId(sourceId, new Set(candidates.items.map((m) => m.id)))
+  const payload = modelToPayload({
+    ...source,
+    id: newId,
+    active: false,
+  })
+  return createModel(payload)
+}
+
 export async function updateModel(modelId: string, payload: Record<string, unknown>): Promise<AdminModelDetail> {
   const raw = await unwrap<ApiModelDetail>(
     http.put(`/admin/models/${encodeURIComponent(modelId)}`, payload),

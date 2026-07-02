@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { h, onMounted, ref } from 'vue'
+import { computed, h, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   NButton,
@@ -14,7 +14,7 @@ import {
   useMessage,
   type DataTableColumns,
 } from 'naive-ui'
-import { fetchModels, updateModelStatus } from '@/api/models'
+import { duplicateModel, fetchModels, updateModelStatus } from '@/api/models'
 import { formatUsd, formatPriceUnit } from '@/utils/currency'
 import { formatTimestamp } from '@/utils/time'
 import CopyText from '@/components/CopyText.vue'
@@ -25,6 +25,7 @@ const router = useRouter()
 const message = useMessage()
 const dialog = useDialog()
 const loading = ref(false)
+const copyingId = ref<string | null>(null)
 const items = ref<AdminModelListItem[]>([])
 const total = ref(0)
 const page = ref(1)
@@ -55,6 +56,28 @@ async function load() {
   }
 }
 
+function copyModel(row: AdminModelListItem) {
+  const label = resolveLocalizedString(row.displayName) || resolveLocalizedString(row.name) || row.id
+  dialog.info({
+    title: '复制模型',
+    content: `将基于「${label}」创建副本，新模型默认为草稿（未上架），ID 自动生成为 ${row.id}-copy。`,
+    positiveText: '确认复制',
+    onPositiveClick: async () => {
+      copyingId.value = row.id
+      try {
+        const created = await duplicateModel(row.id)
+        message.success(`已创建副本 ${created.id}`)
+        await load()
+        router.push(`/models/${created.id}/edit`)
+      } catch (e) {
+        message.error(e instanceof Error ? e.message : '复制失败')
+      } finally {
+        copyingId.value = null
+      }
+    },
+  })
+}
+
 function toggleStatus(row: AdminModelListItem, active: boolean) {
   const action = active ? '上架' : '下架'
   const content = active ? undefined : '下架后用户端不可见，进行中任务不受影响'
@@ -74,7 +97,7 @@ function toggleStatus(row: AdminModelListItem, active: boolean) {
   })
 }
 
-const columns: DataTableColumns<AdminModelListItem> = [
+const columns = computed<DataTableColumns<AdminModelListItem>>(() => [
   { title: 'ID', key: 'id', render: (r) => h(CopyText, { text: r.id }) },
   { title: '名称', key: 'name', render: (r) => resolveLocalizedString(r.displayName) || resolveLocalizedString(r.name) },
   { title: '提供商', key: 'provider' },
@@ -113,13 +136,23 @@ const columns: DataTableColumns<AdminModelListItem> = [
     render: (r) =>
       h('div', { style: 'display:flex;gap:8px;align-items:center' }, [
         h(NButton, { size: 'small', onClick: () => router.push(`/models/${r.id}/edit`) }, () => '编辑'),
+        h(
+          NButton,
+          {
+            size: 'small',
+            loading: copyingId.value === r.id,
+            disabled: copyingId.value !== null && copyingId.value !== r.id,
+            onClick: () => copyModel(r),
+          },
+          () => '复制',
+        ),
         h(NSwitch, {
           value: r.active,
           onUpdateValue: (v: boolean) => toggleStatus(r, v),
         }),
       ]),
   },
-]
+])
 
 onMounted(load)
 </script>
