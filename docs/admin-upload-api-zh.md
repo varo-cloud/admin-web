@@ -93,16 +93,6 @@ curl -X POST 'https://staging.admin.varo.cloud/api/admin/upload' \
 | `S3_PRESIGN_EXPIRY` | 预签名 URL 有效期（秒） |
 | `UPLOAD_MAX_BYTES` | 单文件上限，默认 `52428800`（50MB） |
 
-### 与用户上传的差异
-
-| | `POST /api/upload` | `POST /api/admin/upload` |
-|---|---|---|
-| 服务 | 用户 API | Admin API |
-| 认证 | 任意登录用户 JWT | 管理员 JWT |
-| 类型限制 | `image/*`、`video/*`、`audio/*` | **无**（任意类型） |
-| Key 前缀 | `uploads/{user_id}/` | `{prefix}/{uuid}{ext}`（`prefix` 可配置，不含 user_id） |
-| 响应字段 | 仅 `{ "url" }` | `url`、`filename`、`content_type`、`size_bytes`、`key` |
-
 ### 实现参考（Python / FastAPI）
 
 ```python
