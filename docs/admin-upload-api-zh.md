@@ -54,7 +54,7 @@ curl -X POST 'https://staging.admin.varo.cloud/api/admin/upload' \
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| `url` | `string` | 可被前端 / 上游直接引用的 URL。配置了 `S3_PUBLIC_BASE_URL` 时为公开/CDN URL，否则为预签名 GET URL |
+| `url` | `string` | 可被前端 / 上游长期引用的 **永久 URL**（见下方「URL 有效期」） |
 | `filename` | `string` | 原始文件名（basename） |
 | `content_type` | `string` | 检测到的 MIME；未知时 `application/octet-stream` |
 | `size_bytes` | `integer` | 文件字节数 |
@@ -72,6 +72,22 @@ curl -X POST 'https://staging.admin.varo.cloud/api/admin/upload' \
 
 不在 key 中嵌入管理员 `user_id`，避免 URL 过长。
 
+### URL 有效期
+
+通过 Admin 上传的资源 **URL 永不过期**，供 Hero 轮播、模型图标等长期配置引用。
+
+**实现要求：**
+
+- 返回的 `url` 必须是 **公开/CDN 永久链接**（基于 `S3_PUBLIC_BASE_URL`），**不得**返回带 `Expires` / `X-Amz-Expires` 的 S3 预签名 URL。
+- 部署 Admin 上传功能时，**必须配置** `S3_PUBLIC_BASE_URL`（或等价的 CDN 域名）；未配置时不应 fallback 到预签名 URL，应返回 `503`。
+- 对象 ACL / Bucket 策略需允许通过 CDN 或公开域名长期 GET；勿对 Admin 上传对象设置生命周期自动删除（除非运营主动调用删除接口）。
+
+**示例（永久 URL）：**
+
+```
+https://cdn.varo.cloud/uploads/mk1abc9xyz.png
+```
+
 ### 错误码
 
 | HTTP | `code` | 含义 |
@@ -79,7 +95,7 @@ curl -X POST 'https://staging.admin.varo.cloud/api/admin/upload' \
 | 401 | 401 | 未登录 |
 | 403 | 403 | 非管理员 |
 | 413 | 413 | 超过 `UPLOAD_MAX_BYTES`（默认 50MB，与用户上传共用） |
-| 503 | 503 | 未配置 `S3_BUCKET` |
+| 503 | 503 | 未配置 `S3_BUCKET` 或 Admin 上传所需的 `S3_PUBLIC_BASE_URL` |
 
 ### 环境变量
 
@@ -89,9 +105,10 @@ curl -X POST 'https://staging.admin.varo.cloud/api/admin/upload' \
 |---|---|
 | `S3_BUCKET` | 必填，未配置返回 503 |
 | `S3_REGION` | 可选，默认 `ap-southeast-1` |
-| `S3_PUBLIC_BASE_URL` | 可选，CDN/公开域名 |
-| `S3_PRESIGN_EXPIRY` | 预签名 URL 有效期（秒） |
+| `S3_PUBLIC_BASE_URL` | **Admin 上传必填**。CDN/公开域名，用于生成永不过期的资源 URL |
 | `UPLOAD_MAX_BYTES` | 单文件上限，默认 `52428800`（50MB） |
+
+> Admin 上传不使用 `S3_PRESIGN_EXPIRY`；该变量仅适用于用户侧 `POST /api/upload` 等预签名场景。
 
 ### 实现参考（Python / FastAPI）
 
@@ -136,7 +153,7 @@ async def admin_upload(
     key = f"{key_prefix}/{uuid.uuid4().hex}{ext}"
 
     content_type = file.content_type or "application/octet-stream"
-    url = storage.put_object(key, data, content_type)
+    url = storage.put_admin_object(key, data, content_type)  # 永久公开 URL，见 storage 实现
 
     return {
         "url": url,
@@ -148,6 +165,21 @@ async def admin_upload(
 ```
 
 注册到 Admin app 的 router 列表即可。
+
+**`put_admin_object` 建议实现（`app/storage.py`）：**
+
+```python
+def put_admin_object(key: str, data: bytes, content_type: str) -> str:
+    """Admin 上传：写入 S3 并返回永不过期的公开/CDN URL。"""
+    base = os.environ.get("S3_PUBLIC_BASE_URL", "").strip()
+    if not base:
+        raise HTTPException(status_code=503, detail="S3_PUBLIC_BASE_URL is required for admin upload")
+    bucket = os.environ["S3_BUCKET"]
+    _s3().put_object(Bucket=bucket, Key=key, Body=data, ContentType=content_type)
+    return f"{base.rstrip('/')}/{key}"
+```
+
+与用户侧 `put_object`（可 fallback 预签名 URL）区分，Admin 路径禁止生成会过期的链接。
 
 ---
 
