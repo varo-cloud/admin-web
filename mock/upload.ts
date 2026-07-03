@@ -1,5 +1,4 @@
 import type { MockMethod } from 'vite-plugin-mock'
-import { addAuditLog } from './store'
 import { fail, requireAdmin, success } from './_util'
 
 const uploadedKeys = new Set<string>()
@@ -53,17 +52,6 @@ export default [
       const url = `https://cdn.varo.cloud/${key}`
 
       uploadedKeys.add(key)
-
-      addAuditLog({
-        admin_user_id: auth.user.id,
-        admin_email: auth.user.email,
-        action: 'admin_upload',
-        target_type: 'asset',
-        target_id: key,
-        reason: `上传文件 ${filename}`,
-        before_snapshot: null,
-        after_snapshot: { key, url, filename, size_bytes: sizeBytes },
-      })
 
       return success({
         url,

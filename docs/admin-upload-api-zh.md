@@ -70,7 +70,7 @@ curl -X POST 'https://staging.admin.varo.cloud/api/admin/upload' \
 - `uuid`：随机唯一 ID（建议 `uuid.uuid4().hex` 或时间戳 + 随机串）
 - `ext`：取自原始文件名的扩展名（小写），无扩展名可省略
 
-不在 key 中嵌入管理员 `user_id`，避免 URL 过长；上传者信息通过审计日志记录。
+不在 key 中嵌入管理员 `user_id`，避免 URL 过长。
 
 ### 错误码
 
@@ -80,17 +80,6 @@ curl -X POST 'https://staging.admin.varo.cloud/api/admin/upload' \
 | 403 | 403 | 非管理员 |
 | 413 | 413 | 超过 `UPLOAD_MAX_BYTES`（默认 50MB，与用户上传共用） |
 | 503 | 503 | 未配置 `S3_BUCKET` |
-
-### 审计
-
-成功上传后写入 `admin_audit_logs`：
-
-| 字段 | 建议值 |
-|---|---|
-| `action` | `admin_upload` |
-| `target_type` | `asset` |
-| `target_id` | S3 `key` |
-| `after_snapshot` | `{ "key", "url", "filename", "size_bytes" }` |
 
 ### 环境变量
 
@@ -158,8 +147,6 @@ async def admin_upload(
 
     content_type = file.content_type or "application/octet-stream"
     url = storage.put_object(key, data, content_type)
-
-    # TODO: add_audit_log(...)
 
     return {
         "url": url,
