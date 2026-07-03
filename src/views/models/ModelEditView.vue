@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import {
   NButton,
+  NDynamicTags,
   NForm,
   NFormItem,
   NInput,
@@ -37,6 +38,14 @@ const schemaJson = ref('{}')
 const basicLocale = ref<ContentLocale>('en-US')
 const docsLocale = ref<ContentLocale>('en-US')
 
+const capabilities = computed({
+  get: () => form.value.capabilities ?? [],
+  set: (value: string[]) => {
+    form.value.capabilities = value
+    markDirty()
+  },
+})
+
 const form = ref<Partial<AdminModelDetail>>({
   id: '',
   name: emptyLocalizedString(),
@@ -64,7 +73,6 @@ const form = ref<Partial<AdminModelDetail>>({
   faq: [],
 })
 
-const capInput = ref('')
 const faqItems = ref<ModelFaqItem[]>([])
 
 const priceUnitOptions = [
@@ -85,11 +93,10 @@ function ensureLocalizedFields() {
   form.value.readmeMd = normalizeLocalizedString(form.value.readmeMd)
 }
 
-async function loadModel() {
-  if (isNew.value) return
-  const data = await fetchModelDetail(modelId.value!)
+function applyModelDetail(data: AdminModelDetail, options: { active?: boolean } = {}) {
   form.value = {
     ...data,
+    active: options.active ?? data.active,
     name: normalizeLocalizedString(data.name),
     displayName: normalizeLocalizedString(data.displayName),
     description: normalizeLocalizedString(data.description),
@@ -102,6 +109,25 @@ async function loadModel() {
   }))
 }
 
+function buildCopyModelId(sourceId: string): string {
+  return `${sourceId}_${Date.now()}`
+}
+
+async function loadModel() {
+  const copyFrom = typeof route.query.copyFrom === 'string' ? route.query.copyFrom : undefined
+  if (isNew.value && copyFrom) {
+    const data = await fetchModelDetail(copyFrom)
+    applyModelDetail(data, { active: false })
+    const presetId = typeof route.query.newId === 'string' ? route.query.newId : undefined
+    form.value.id = presetId ?? buildCopyModelId(copyFrom)
+    dirty.value = true
+    return
+  }
+  if (isNew.value) return
+  const data = await fetchModelDetail(modelId.value!)
+  applyModelDetail(data)
+}
+
 onMounted(async () => {
   try {
     await loadModel()
@@ -110,15 +136,6 @@ onMounted(async () => {
   }
 })
 
-function addCap() {
-  const v = capInput.value.trim()
-  if (v && !form.value.capabilities?.includes(v)) {
-    form.value.capabilities = [...(form.value.capabilities ?? []), v]
-    capInput.value = ''
-    markDirty()
-  }
-}
-
 function addFaq() {
   faqItems.value.push({ question: emptyLocalizedString(), answer: emptyLocalizedString() })
   markDirty()
@@ -126,6 +143,12 @@ function addFaq() {
 
 function validateLocalizedFields(): boolean {
   ensureLocalizedFields()
+  const caps = capabilities.value.map((c) => c.trim()).filter(Boolean)
+  if (caps.length === 0) {
+    message.error('请至少添加一个能力')
+    return false
+  }
+  form.value.capabilities = caps
   if (!form.value.name?.['en-US']?.trim()) {
     message.error('请填写英文完整名称 (en-US)')
     basicLocale.value = 'en-US'
@@ -181,7 +204,15 @@ onBeforeRouteLeave((_to, _from, next) => {
 <template>
   <div>
     <div class="page-header">
-      <h1 class="page-title">{{ isNew ? '创建模型' : `编辑模型 · ${form.id}` }}</h1>
+      <h1 class="page-title">
+        {{
+          isNew
+            ? route.query.copyFrom
+              ? `创建模型 · 复制自 ${route.query.copyFrom}`
+              : '创建模型'
+            : `编辑模型 · ${form.id}`
+        }}
+      </h1>
       <div>
         <NButton style="margin-right: 8px" @click="router.push('/models')">取消</NButton>
         <NButton type="primary" :loading="saving" @click="save">保存</NButton>
@@ -205,11 +236,7 @@ onBeforeRouteLeave((_to, _from, next) => {
               <NInput v-model:value="form.provider" @update:value="markDirty" />
             </NFormItem>
             <NFormItem label="能力 *">
-              <div class="cap-row">
-                <NInput v-model:value="capInput" placeholder="如 text-to-video" @keyup.enter="addCap" />
-                <NButton @click="addCap">添加</NButton>
-              </div>
-              <div class="caps">{{ form.capabilities?.join(', ') }}</div>
+              <NDynamicTags v-model:value="capabilities" />
             </NFormItem>
             <NFormItem :label="basicLocale === 'en-US' ? '描述 *' : '描述'">
               <textarea v-model="form.description![basicLocale]" class="textarea" rows="3" @input="markDirty" />
@@ -311,15 +338,6 @@ onBeforeRouteLeave((_to, _from, next) => {
   border: 1px solid #d1d5db;
   border-radius: 6px;
   font-family: inherit;
-}
-.cap-row {
-  display: flex;
-  gap: 8px;
-}
-.caps {
-  margin-top: 8px;
-  font-size: 13px;
-  color: #64748b;
 }
 .faq-item {
   margin-top: 12px;

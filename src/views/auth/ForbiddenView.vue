@@ -20,6 +20,10 @@ const redirectPath = computed(() => {
   const value = route.query.redirect
   return typeof value === 'string' && value ? value : undefined
 })
+
+const isMockDev = computed(
+  () => import.meta.env.DEV && import.meta.env.VITE_USE_MOCK !== 'false',
+)
 </script>
 
 <template>
@@ -29,8 +33,12 @@ const redirectPath = computed(() => {
         <NAlert :type="isUnauthenticated ? 'warning' : 'error'" :show-icon="false">
           {{ description }}
         </NAlert>
+        <NAlert v-if="isMockDev && isUnauthenticated" type="info" :show-icon="false">
+          当前为 Mock 开发模式，无需主站登录。请刷新页面；若仍失败，清除浏览器 localStorage 中的
+          auth_token 后重试。
+        </NAlert>
         <NSpace>
-          <NButton v-if="isUnauthenticated" type="primary" tag="a" :href="mainSiteAuthUrl(redirectPath)">
+          <NButton v-if="isUnauthenticated && !isMockDev" type="primary" tag="a" :href="mainSiteAuthUrl(redirectPath)">
             前往登录
           </NButton>
           <NButton tag="a" :href="mainSiteHomeUrl()">返回主站</NButton>

@@ -46,6 +46,11 @@ const routes: RouteRecordRaw[] = [
         name: 'hero-carousel',
         component: () => import('@/views/content/HeroCarouselView.vue'),
       },
+      {
+        path: 'content/upload',
+        name: 'upload',
+        component: () => import('@/views/content/UploadView.vue'),
+      },
       { path: 'settings', name: 'settings', component: () => import('@/views/settings/SettingsView.vue') },
       { path: 'audit-logs', name: 'audit-logs', component: () => import('@/views/audit-logs/AuditLogsView.vue') },
     ],

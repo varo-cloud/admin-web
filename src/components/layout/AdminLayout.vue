@@ -23,6 +23,7 @@ import {
   DocumentTextOutline,
   VideocamOutline,
   WalletOutline,
+  CloudUploadOutline,
 } from '@vicons/ionicons5'
 import { useAuthStore } from '@/stores/auth'
 import { NIcon } from 'naive-ui'
@@ -45,6 +46,7 @@ const menuOptions: MenuOption[] = [
   { label: 'API Keys', key: '/api-keys', icon: renderIcon(KeyOutline) },
   { label: '定价', key: '/pricing', icon: renderIcon(PricetagOutline) },
   { label: 'Hero 轮播', key: '/content/hero-carousel', icon: renderIcon(VideocamOutline) },
+  { label: '文件上传', key: '/content/upload', icon: renderIcon(CloudUploadOutline) },
   { label: '系统配置', key: '/settings', icon: renderIcon(SettingsOutline) },
   { label: '审计日志', key: '/audit-logs', icon: renderIcon(DocumentTextOutline) },
 ]

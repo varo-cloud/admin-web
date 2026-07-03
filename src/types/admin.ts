@@ -295,3 +295,11 @@ export interface HeroCarouselAssetUpload {
   contentType: string
   sizeBytes: number
 }
+
+export interface AdminAssetUpload {
+  url: string
+  filename: string
+  contentType: string
+  sizeBytes: number
+  key: string
+}

@@ -1,6 +1,8 @@
 const TOKEN_KEY = 'auth_token'
 const REFRESH_TOKEN_KEY = 'refresh_token'
 
+const MOCK_ACCESS_TOKEN_RE = /^mock_access_.+_\d+$/
+
 function readEnvToken(value: string | undefined): string | null {
   const trimmed = value?.trim()
   return trimmed || null
@@ -37,12 +39,17 @@ export function initDevAuthFromEnv(): boolean {
   return true
 }
 
-/** Mock 开发：无 token 时写入管理员 mock token，便于独立启动 admin-web。 */
+/** Mock 开发：无可用 mock token 时写入管理员 token，便于独立启动 admin-web。 */
 export function initMockAdminTokenIfNeeded(): boolean {
   if (!import.meta.env.DEV || import.meta.env.VITE_USE_MOCK === 'false') return false
-  if (localStorage.getItem(TOKEN_KEY)) return false
+  // 显式配置了联调 token 时不覆盖（Mock Admin + 真实 User 等混合场景）
+  if (hasDevAuthEnv()) return false
+
+  const existing = localStorage.getItem(TOKEN_KEY)
+  if (existing && MOCK_ACCESS_TOKEN_RE.test(existing)) return false
 
   localStorage.setItem(TOKEN_KEY, `mock_access_admin-001_${Date.now()}`)
+  localStorage.removeItem(REFRESH_TOKEN_KEY)
   return true
 }
 
