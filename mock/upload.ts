@@ -28,10 +28,6 @@ function sanitizePrefix(raw: unknown): string {
   return value.replace(/[^a-zA-Z0-9/_-]/g, '').replace(/^\/+|\/+$/g, '') || 'uploads'
 }
 
-function isAllowedKey(key: string): boolean {
-  return /^[a-zA-Z0-9][a-zA-Z0-9/_-]*$/.test(key) && !key.includes('..')
-}
-
 function randomObjectId(): string {
   return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`
 }
@@ -71,21 +67,8 @@ export default [
 
       const key = String(body?.key ?? '').trim()
       if (!key) return fail('key 不能为空', 400)
-      if (!isAllowedKey(key)) return fail('key 格式无效', 400)
-      if (!uploadedKeys.has(key)) return fail('文件不存在', 404)
 
       uploadedKeys.delete(key)
-
-      addAuditLog({
-        admin_user_id: auth.user.id,
-        admin_email: auth.user.email,
-        action: 'admin_upload_delete',
-        target_type: 'asset',
-        target_id: key,
-        reason: `删除文件 ${key}`,
-        before_snapshot: { key },
-        after_snapshot: null,
-      })
 
       return success({ deleted: true, key })
     },

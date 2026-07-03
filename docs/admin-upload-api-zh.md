@@ -199,26 +199,11 @@ curl -X DELETE 'https://staging.admin.varo.cloud/api/admin/upload' \
 
 | HTTP | `code` | 含义 |
 |---|---|---|
-| 400 | 400 | `key` 缺失或格式无效 |
+| 400 | 400 | `key` 缺失 |
 | 401 | 401 | 未登录 |
 | 403 | 403 | 非管理员 |
 | 404 | 404 | 对象不存在 |
 | 503 | 503 | 未配置 `S3_BUCKET` |
-
-### 安全约束（建议实现）
-
-- 仅允许删除 **Admin 上传路径** 下的对象，例如 key 必须以 `uploads/` 或业务允许的 prefix 开头
-- 禁止 `..`、绝对路径等异常 key
-- 删除前可选检查：若 key 仍被 Hero slide、模型 `icon_url` 等引用，可返回 `409` 并提示（首版可只做 S3 删除）
-
-### 审计
-
-| 字段 | 建议值 |
-|---|---|
-| `action` | `admin_upload_delete` |
-| `target_type` | `asset` |
-| `target_id` | S3 `key` |
-| `before_snapshot` | `{ "key" }` |
 
 ### 实现参考（Python / FastAPI）
 
@@ -232,15 +217,11 @@ async def admin_upload_delete(
         raise HTTPException(status_code=503, detail="Upload storage not configured")
 
     key = str(body.get("key") or "").strip()
-    if not key or ".." in key:
-        raise HTTPException(status_code=400, detail="Invalid key")
-    if not key.startswith("uploads/"):
-        raise HTTPException(status_code=403, detail="Key not deletable")
+    if not key:
+        raise HTTPException(status_code=400, detail="key is required")
 
     if not storage.delete_object(key):
         raise HTTPException(status_code=404, detail="Object not found")
-
-    # TODO: add_audit_log(action="admin_upload_delete", ...)
 
     return {"deleted": True, "key": key}
 ```
