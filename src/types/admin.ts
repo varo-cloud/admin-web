@@ -3,7 +3,6 @@ import type {
   GenerationStatus,
   InvocationChannel,
   LocalizedString,
-  ModelFaqItem,
   Paginated,
   PaymentProvider,
   PricingPriceUnit,
@@ -90,46 +89,56 @@ export interface BalanceAdjustmentResult {
   billingRecordId: string
 }
 
-export interface AdminModelListItem {
-  id: string
-  name: LocalizedString
-  displayName?: LocalizedString
-  provider: string
-  capabilities: string[]
+export type ModelCategory = 'video' | 'image' | 'llm'
+export type PricingMode = 'video' | 'audio' | 'dashscope_video' | 'sandbase_video'
+
+export interface BaseModel {
+  seqId: number
+  slug: string
+  category: ModelCategory
+  apiModelId: string | null
+  mode: PricingMode
+  rate: Record<string, unknown>
+  description: string
   active: boolean
-  isHot: boolean
-  isNew: boolean
-  startingPriceUsd: number
-  priceUnit: PricingPriceUnit
   sortOrder: number
+  createdAt: number
   updatedAt: number
 }
 
-export interface AdminModelDetail {
-  id: string
-  name: LocalizedString
-  displayName?: LocalizedString
-  provider: string
-  capabilities: string[]
-  description: LocalizedString
-  thumbnailUrl?: string
-  iconUrl?: string
-  modelPath: string
-  apiModelId: string
-  active: boolean
+export interface Offering {
+  seqId: number
+  modelId: number
+  capability: string
+  displayName: string
+  description: string
+  thumbnailUrl: string | null
+  iconUrl: string | null
+  startingPriceUsd: number | null
+  standardPriceUsd: number | null
+  priceUnit: string | null
+  priceDetail: string | null
+  readmeMd: string | null
+  readmeMdI18n: Record<string, string> | null
+  faq: Array<Record<string, unknown>>
+  faqI18n: Record<string, unknown> | null
+  inputSchema: Record<string, unknown> | null
   isHot: boolean
   isNew: boolean
+  active: boolean
   sortOrder: number
-  startingPriceUsd: number
-  standardPriceUsd?: number
-  priceUnit: PricingPriceUnit
-  priceDetail?: string
-  discountPercent?: number
-  perRunPriceUsd?: number
-  runsPerTenUsd?: number
-  inputSchema: Record<string, unknown>
-  readmeMd?: LocalizedString
-  faq: ModelFaqItem[]
+  createdAt: number
+  updatedAt: number
+}
+
+export interface ProviderRoute {
+  seqId: number
+  modelId: number
+  provider: string
+  priority: number
+  baseUrl: string
+  apiModelId: string | null
+  active: boolean
   createdAt: number
   updatedAt: number
 }
@@ -261,7 +270,6 @@ export interface AuditLog {
 }
 
 export type UsersPage = Paginated<AdminUserListItem>
-export type ModelsPage = Paginated<AdminModelListItem>
 export type GenerationsPage = Paginated<AdminGenerationListItem>
 export type TransactionsPage = Paginated<BillingTransaction>
 export type ApiKeysPage = Paginated<AdminApiKeyListItem>

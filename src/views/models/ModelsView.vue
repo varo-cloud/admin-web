@@ -8,47 +8,64 @@ import {
   NSelect,
   NSwitch,
   NTag,
-  NPagination,
   NSpin,
   useDialog,
   useMessage,
   type DataTableColumns,
 } from 'naive-ui'
-import { deleteModel, fetchModels, updateModelStatus } from '@/api/models'
-import { formatUsd, formatPriceUnit } from '@/utils/currency'
+import { deleteBaseModel, fetchBaseModels, fetchOfferings, updateBaseModel } from '@/api/models'
 import { formatTimestamp } from '@/utils/time'
 import CopyText from '@/components/CopyText.vue'
-import type { AdminModelListItem } from '@/types/admin'
-import { resolveLocalizedString } from '@/utils/locale'
+import type { BaseModel, Offering } from '@/types/admin'
 
 const router = useRouter()
 const message = useMessage()
 const dialog = useDialog()
 const loading = ref(false)
-const deletingId = ref<string | null>(null)
-const items = ref<AdminModelListItem[]>([])
-const total = ref(0)
-const page = ref(1)
+const deletingSlug = ref<string | null>(null)
+const baseModels = ref<BaseModel[]>([])
+const offerings = ref<Offering[]>([])
 const q = ref('')
 const activeFilter = ref<string>('')
 
 const activeOptions = [
   { label: '全部', value: '' },
-  { label: '已上架', value: 'true' },
-  { label: '草稿', value: 'false' },
+  { label: '已启用', value: 'true' },
+  { label: '已禁用', value: 'false' },
 ]
+
+const offeringsByModelId = computed(() => {
+  const map = new Map<number, Offering[]>()
+  for (const o of offerings.value) {
+    const list = map.get(o.modelId) ?? []
+    list.push(o)
+    map.set(o.modelId, list)
+  }
+  return map
+})
+
+const filteredItems = computed(() => {
+  let items = [...baseModels.value]
+  const query = q.value.trim().toLowerCase()
+  if (query) {
+    items = items.filter(
+      (m) =>
+        m.slug.toLowerCase().includes(query) ||
+        (m.apiModelId?.toLowerCase().includes(query) ?? false) ||
+        m.description.toLowerCase().includes(query),
+    )
+  }
+  if (activeFilter.value === 'true') items = items.filter((m) => m.active)
+  if (activeFilter.value === 'false') items = items.filter((m) => !m.active)
+  return items
+})
 
 async function load() {
   loading.value = true
   try {
-    const res = await fetchModels({
-      offset: (page.value - 1) * 20,
-      limit: 20,
-      q: q.value || undefined,
-      active: activeFilter.value === '' ? undefined : activeFilter.value === 'true',
-    })
-    items.value = res.items
-    total.value = res.total
+    const [models, offers] = await Promise.all([fetchBaseModels(), fetchOfferings()])
+    baseModels.value = models
+    offerings.value = offers
   } catch (e) {
     message.error(e instanceof Error ? e.message : '加载失败')
   } finally {
@@ -56,50 +73,37 @@ async function load() {
   }
 }
 
-function copyModel(row: AdminModelListItem) {
-  const label = resolveLocalizedString(row.displayName) || resolveLocalizedString(row.name) || row.id
-  const newId = `${row.id}_${Date.now()}`
-  dialog.info({
-    title: '复制模型',
-    content: `将基于「${label}」打开创建页，参数与原模型一致（新 ID：${newId}），默认草稿（未上架）。`,
-    positiveText: '确认复制',
-    onPositiveClick: () => {
-      router.push({ path: '/models/new', query: { copyFrom: row.id, newId } })
-    },
-  })
-}
-
-function deleteModelRow(row: AdminModelListItem) {
-  const label = resolveLocalizedString(row.displayName) || resolveLocalizedString(row.name) || row.id
+function deleteModelRow(row: BaseModel) {
   dialog.warning({
-    title: '删除模型',
-    content: `确认删除「${label}」？此操作不可恢复。`,
+    title: '删除基座模型',
+    content: `确认删除「${row.slug}」？将级联删除所有 Offering 和 Provider Route，此操作不可恢复。`,
     positiveText: '删除',
     onPositiveClick: async () => {
-      deletingId.value = row.id
+      deletingSlug.value = row.slug
       try {
-        await deleteModel(row.id)
+        await deleteBaseModel(row.slug)
         message.success('已删除')
         await load()
       } catch (e) {
         message.error(e instanceof Error ? e.message : '删除失败')
       } finally {
-        deletingId.value = null
+        deletingSlug.value = null
       }
     },
   })
 }
 
-function toggleStatus(row: AdminModelListItem, active: boolean) {
-  const action = active ? '上架' : '下架'
-  const content = active ? undefined : '下架后用户端不可见，进行中任务不受影响'
+function toggleStatus(row: BaseModel, active: boolean) {
+  const action = active ? '启用' : '禁用'
   dialog.warning({
-    title: `${action}模型`,
-    content: content ?? `确认${action} ${resolveLocalizedString(row.displayName) || resolveLocalizedString(row.name)}？`,
+    title: `${action}基座模型`,
+    content: active
+      ? `确认启用 ${row.slug}？`
+      : '禁用后其所有 Offering 均不可生成，进行中任务不受影响。',
     positiveText: '确认',
     onPositiveClick: async () => {
       try {
-        await updateModelStatus(row.id, active)
+        await updateBaseModel(row.slug, { active })
         message.success(`${action}成功`)
         await load()
       } catch (e) {
@@ -109,8 +113,8 @@ function toggleStatus(row: AdminModelListItem, active: boolean) {
   })
 }
 
-function renderCapabilities(row: AdminModelListItem) {
-  const caps = row.capabilities ?? []
+function renderCapabilities(row: BaseModel) {
+  const caps = (offeringsByModelId.value.get(row.seqId) ?? []).map((o) => o.capability)
   if (caps.length === 0) return '—'
   return h(
     'div',
@@ -119,37 +123,19 @@ function renderCapabilities(row: AdminModelListItem) {
   )
 }
 
-const columns = computed<DataTableColumns<AdminModelListItem>>(() => [
-  { title: 'ID', key: 'id', render: (r) => h(CopyText, { text: r.id }) },
-  { title: '名称', key: 'name', render: (r) => resolveLocalizedString(r.displayName) || resolveLocalizedString(r.name) },
-  { title: '提供商', key: 'provider' },
-  {
-    title: '能力',
-    key: 'capabilities',
-    minWidth: 160,
-    render: renderCapabilities,
-  },
+const columns = computed<DataTableColumns<BaseModel>>(() => [
+  { title: 'Slug', key: 'slug', render: (r) => h(CopyText, { text: r.slug }) },
+  { title: '分类', key: 'category' },
+  { title: '计价模式', key: 'mode' },
+  { title: 'API Model ID', key: 'apiModelId', render: (r) => r.apiModelId || '—' },
+  { title: '能力', key: 'capabilities', minWidth: 160, render: renderCapabilities },
   {
     title: '状态',
     key: 'active',
-    render: (r) => h(NTag, { type: r.active ? 'success' : 'default', size: 'small' }, () => (r.active ? '已上架' : '草稿')),
-  },
-  {
-    title: '热门',
-    key: 'isHot',
     render: (r) =>
-      r.isHot ? h(NTag, { type: 'warning', size: 'small' }, () => 'HOT') : '—',
-  },
-  {
-    title: '新品',
-    key: 'isNew',
-    render: (r) =>
-      r.isNew ? h(NTag, { type: 'info', size: 'small' }, () => 'NEW') : '—',
-  },
-  {
-    title: '起价',
-    key: 'startingPriceUsd',
-    render: (r) => `${formatUsd(r.startingPriceUsd)}${formatPriceUnit(r.priceUnit)}`,
+      h(NTag, { type: r.active ? 'success' : 'default', size: 'small' }, () =>
+        r.active ? '已启用' : '已禁用',
+      ),
   },
   { title: '排序', key: 'sortOrder' },
   { title: '更新时间', key: 'updatedAt', render: (r) => formatTimestamp(r.updatedAt) },
@@ -158,15 +144,14 @@ const columns = computed<DataTableColumns<AdminModelListItem>>(() => [
     key: 'actions',
     render: (r) =>
       h('div', { style: 'display:flex;gap:8px;align-items:center' }, [
-        h(NButton, { size: 'small', onClick: () => router.push(`/models/${r.id}/edit`) }, () => '编辑'),
-        h(NButton, { size: 'small', disabled: deletingId.value !== null, onClick: () => copyModel(r) }, () => '复制'),
+        h(NButton, { size: 'small', onClick: () => router.push(`/models/${r.slug}/edit`) }, () => '编辑'),
         h(
           NButton,
           {
             size: 'small',
             type: 'error',
-            loading: deletingId.value === r.id,
-            disabled: deletingId.value !== null && deletingId.value !== r.id,
+            loading: deletingSlug.value === r.slug,
+            disabled: deletingSlug.value !== null && deletingSlug.value !== r.slug,
             onClick: () => deleteModelRow(r),
           },
           () => '删除',
@@ -185,25 +170,17 @@ onMounted(load)
 <template>
   <div>
     <div class="page-header">
-      <h1 class="page-title">模型列表</h1>
-      <NButton type="primary" @click="router.push('/models/new')">创建模型</NButton>
+      <h1 class="page-title">基座模型</h1>
+      <NButton type="primary" @click="router.push('/models/new')">创建基座模型</NButton>
     </div>
 
     <div class="filter-bar">
-      <NInput v-model:value="q" placeholder="搜索 ID / 名称" style="width: 220px" @keyup.enter="load" />
+      <NInput v-model:value="q" placeholder="搜索 slug / api_model_id" style="width: 260px" />
       <NSelect v-model:value="activeFilter" :options="activeOptions" style="width: 120px" />
-      <NButton @click="load">搜索</NButton>
     </div>
 
     <NSpin :show="loading">
-      <NDataTable :columns="columns" :data="items" :scroll-x="1400" />
-      <NPagination
-        v-model:page="page"
-        :page-size="20"
-        :item-count="total"
-        style="margin-top: 16px; justify-content: flex-end"
-        @update:page="load"
-      />
+      <NDataTable :columns="columns" :data="filteredItems" :scroll-x="1200" />
     </NSpin>
   </div>
 </template>

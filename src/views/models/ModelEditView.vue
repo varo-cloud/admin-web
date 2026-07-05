@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, h, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import {
   NButton,
-  NDynamicTags,
+  NDataTable,
+  NDrawer,
+  NDrawerContent,
   NForm,
   NFormItem,
   NInput,
@@ -12,68 +14,80 @@ import {
   NSwitch,
   NTabPane,
   NTabs,
+  NTag,
+  useDialog,
   useMessage,
+  type DataTableColumns,
 } from 'naive-ui'
 import JsonEditor from '@/components/JsonEditor.vue'
 import LocaleTabs from '@/components/LocaleTabs.vue'
 import {
-  createModel,
-  fetchModelDetail,
-  modelToPayload,
-  updateModel,
+  baseModelToPayload,
+  createBaseModel,
+  createOffering,
+  createProviderRoute,
+  deleteOffering,
+  deleteProviderRoute,
+  fetchBaseModel,
+  fetchOfferings,
+  fetchProviderRoutes,
+  localizedToI18n,
+  offeringToPayload,
+  providerRouteToPayload,
+  updateBaseModel,
+  updateOffering,
+  updateProviderRoute,
 } from '@/api/models'
-import type { AdminModelDetail } from '@/types/admin'
-import type { ContentLocale, ModelFaqItem } from '@/types'
+import type { BaseModel, Offering, ProviderRoute } from '@/types/admin'
+import type { ContentLocale } from '@/types'
 import { emptyLocalizedString, normalizeLocalizedString } from '@/utils/locale'
 
 const route = useRoute()
 const router = useRouter()
 const message = useMessage()
+const dialog = useDialog()
 const isNew = computed(() => route.name === 'model-new')
-const modelId = computed(() => route.params.id as string | undefined)
+const modelSlug = computed(() => route.params.slug as string | undefined)
 
 const saving = ref(false)
 const dirty = ref(false)
+const rateJson = ref('{}')
 const schemaJson = ref('{}')
-const basicLocale = ref<ContentLocale>('en-US')
 const docsLocale = ref<ContentLocale>('en-US')
 
-const capabilities = computed({
-  get: () => form.value.capabilities ?? [],
-  set: (value: string[]) => {
-    form.value.capabilities = value
-    markDirty()
-  },
+const baseForm = ref<Partial<BaseModel>>({
+  slug: '',
+  category: 'video',
+  mode: 'video',
+  apiModelId: null,
+  rate: {},
+  description: '',
+  active: true,
+  sortOrder: 0,
 })
 
-const form = ref<Partial<AdminModelDetail>>({
-  id: '',
-  name: emptyLocalizedString(),
-  displayName: emptyLocalizedString(),
-  provider: '',
-  capabilities: [],
-  description: emptyLocalizedString(),
-  thumbnailUrl: '',
-  iconUrl: '',
-  modelPath: '',
-  apiModelId: '',
-  active: false,
-  isHot: false,
-  isNew: false,
-  sortOrder: 100,
-  startingPriceUsd: 0,
-  standardPriceUsd: 0,
-  priceUnit: 'per_second',
-  priceDetail: '',
-  discountPercent: 0,
-  perRunPriceUsd: 0,
-  runsPerTenUsd: 0,
-  inputSchema: {},
-  readmeMd: emptyLocalizedString(),
-  faq: [],
-})
+const offerings = ref<Offering[]>([])
+const routes = ref<ProviderRoute[]>([])
+const offeringDrawer = ref(false)
+const routeDrawer = ref(false)
+const offeringSaving = ref(false)
+const routeSaving = ref(false)
+const editingOffering = ref<(Partial<Offering> & { isCreating?: boolean }) | null>(null)
+const editingRoute = ref<(Partial<ProviderRoute> & { isCreating?: boolean; apiKey?: string }) | null>(null)
+const readmeLocalized = ref(emptyLocalizedString())
 
-const faqItems = ref<ModelFaqItem[]>([])
+const categoryOptions = [
+  { label: 'video', value: 'video' },
+  { label: 'image', value: 'image' },
+  { label: 'llm', value: 'llm' },
+]
+
+const modeOptions = [
+  { label: 'video', value: 'video' },
+  { label: 'audio', value: 'audio' },
+  { label: 'dashscope_video', value: 'dashscope_video' },
+  { label: 'sandbase_video', value: 'sandbase_video' },
+]
 
 const priceUnitOptions = [
   { label: 'per_second', value: 'per_second' },
@@ -86,46 +100,26 @@ function markDirty() {
   dirty.value = true
 }
 
-function ensureLocalizedFields() {
-  form.value.name = normalizeLocalizedString(form.value.name)
-  form.value.displayName = normalizeLocalizedString(form.value.displayName)
-  form.value.description = normalizeLocalizedString(form.value.description)
-  form.value.readmeMd = normalizeLocalizedString(form.value.readmeMd)
+function applyBaseModel(data: BaseModel) {
+  baseForm.value = { ...data }
+  rateJson.value = JSON.stringify(data.rate ?? {}, null, 2)
 }
 
-function applyModelDetail(data: AdminModelDetail, options: { active?: boolean } = {}) {
-  form.value = {
-    ...data,
-    active: options.active ?? data.active,
-    name: normalizeLocalizedString(data.name),
-    displayName: normalizeLocalizedString(data.displayName),
-    description: normalizeLocalizedString(data.description),
-    readmeMd: normalizeLocalizedString(data.readmeMd),
-  }
-  schemaJson.value = JSON.stringify(data.inputSchema ?? {}, null, 2)
-  faqItems.value = (data.faq ?? []).map((item) => ({
-    question: normalizeLocalizedString(item.question),
-    answer: normalizeLocalizedString(item.answer),
-  }))
-}
-
-function buildCopyModelId(sourceId: string): string {
-  return `${sourceId}_${Date.now()}`
+async function loadRelated() {
+  if (!modelSlug.value || isNew.value) return
+  const [offers, providerRoutes] = await Promise.all([
+    fetchOfferings(baseForm.value.seqId),
+    fetchProviderRoutes(modelSlug.value),
+  ])
+  offerings.value = offers
+  routes.value = providerRoutes
 }
 
 async function loadModel() {
-  const copyFrom = typeof route.query.copyFrom === 'string' ? route.query.copyFrom : undefined
-  if (isNew.value && copyFrom) {
-    const data = await fetchModelDetail(copyFrom)
-    applyModelDetail(data, { active: false })
-    const presetId = typeof route.query.newId === 'string' ? route.query.newId : undefined
-    form.value.id = presetId ?? buildCopyModelId(copyFrom)
-    dirty.value = true
-    return
-  }
   if (isNew.value) return
-  const data = await fetchModelDetail(modelId.value!)
-  applyModelDetail(data)
+  const data = await fetchBaseModel(modelSlug.value!)
+  applyBaseModel(data)
+  await loadRelated()
 }
 
 onMounted(async () => {
@@ -136,56 +130,51 @@ onMounted(async () => {
   }
 })
 
-function addFaq() {
-  faqItems.value.push({ question: emptyLocalizedString(), answer: emptyLocalizedString() })
-  markDirty()
-}
+watch(
+  () => route.params.slug,
+  async () => {
+    if (isNew.value) return
+    try {
+      await loadModel()
+    } catch (e) {
+      message.error(e instanceof Error ? e.message : '加载失败')
+    }
+  },
+)
 
-function validateLocalizedFields(): boolean {
-  ensureLocalizedFields()
-  const caps = capabilities.value.map((c) => c.trim()).filter(Boolean)
-  if (caps.length === 0) {
-    message.error('请至少添加一个能力')
+function validateBaseForm(): boolean {
+  if (!baseForm.value.slug?.trim()) {
+    message.error('请填写 slug')
     return false
   }
-  form.value.capabilities = caps
-  if (!form.value.name?.['en-US']?.trim()) {
-    message.error('请填写英文完整名称 (en-US)')
-    basicLocale.value = 'en-US'
+  if (!baseForm.value.mode) {
+    message.error('请选择计价模式')
     return false
   }
-  if (!form.value.description?.['en-US']?.trim()) {
-    message.error('请填写英文描述 (en-US)')
-    basicLocale.value = 'en-US'
+  try {
+    baseForm.value.rate = JSON.parse(rateJson.value || '{}')
+  } catch {
+    message.error('Rate JSON 无效')
     return false
   }
   return true
 }
 
-async function save() {
-  if (!validateLocalizedFields()) return
-
-  try {
-    const parsed = JSON.parse(schemaJson.value || '{}')
-    form.value.inputSchema = parsed
-  } catch {
-    return message.error('Input Schema JSON 无效')
-  }
-
-  form.value.faq = faqItems.value.filter((f) => f.question['en-US']?.trim() || f.question['zh-CN']?.trim())
-
+async function saveBaseModel() {
+  if (!validateBaseForm()) return
   saving.value = true
   try {
-    const payload = modelToPayload(form.value)
+    const payload = baseModelToPayload(baseForm.value)
     if (isNew.value) {
-      const created = await createModel(payload)
-      message.success('创建成功，请完成配置后上架')
+      const created = await createBaseModel(payload)
+      message.success('基座模型创建成功，请继续配置 Offering 和 Provider Route')
       dirty.value = false
-      router.replace(`/models/${created.id}/edit`)
+      router.replace(`/models/${created.slug}/edit`)
     } else {
-      await updateModel(modelId.value!, payload)
+      await updateBaseModel(modelSlug.value!, payload)
       message.success('保存成功')
       dirty.value = false
+      await loadModel()
     }
   } catch (e) {
     message.error(e instanceof Error ? e.message : '保存失败')
@@ -193,6 +182,218 @@ async function save() {
     saving.value = false
   }
 }
+
+function defaultOffering(): Partial<Offering> & { isCreating: boolean } {
+  return {
+    isCreating: true,
+    modelId: baseForm.value.seqId,
+    capability: '',
+    displayName: '',
+    description: '',
+    thumbnailUrl: null,
+    iconUrl: null,
+    startingPriceUsd: null,
+    standardPriceUsd: null,
+    priceUnit: 'per_second',
+    priceDetail: null,
+    readmeMd: null,
+    readmeMdI18n: null,
+    faq: [],
+    faqI18n: null,
+    inputSchema: {},
+    isHot: false,
+    isNew: false,
+    active: true,
+    sortOrder: 0,
+  }
+}
+
+function openOfferingEditor(row?: Offering) {
+  docsLocale.value = 'en-US'
+  if (row) {
+    editingOffering.value = { ...row, isCreating: false }
+    schemaJson.value = JSON.stringify(row.inputSchema ?? {}, null, 2)
+    readmeLocalized.value = row.readmeMdI18n
+      ? normalizeLocalizedString(row.readmeMdI18n)
+      : row.readmeMd
+        ? { 'en-US': row.readmeMd, 'zh-CN': '' }
+        : emptyLocalizedString()
+  } else {
+    editingOffering.value = defaultOffering()
+    schemaJson.value = '{}'
+    readmeLocalized.value = emptyLocalizedString()
+  }
+  offeringDrawer.value = true
+}
+
+async function saveOffering() {
+  if (!editingOffering.value) return
+  const item = editingOffering.value
+  if (!item.capability?.trim()) return message.warning('请填写 capability')
+  if (!item.displayName?.trim()) return message.warning('请填写展示名称')
+
+  try {
+    item.inputSchema = JSON.parse(schemaJson.value || '{}')
+  } catch {
+    return message.error('Input Schema JSON 无效')
+  }
+
+  const i18n = localizedToI18n(readmeLocalized.value)
+  item.readmeMdI18n = i18n
+  item.readmeMd = readmeLocalized.value['en-US']?.trim() || null
+
+  offeringSaving.value = true
+  try {
+    const payload = offeringToPayload(item)
+    if (item.isCreating) {
+      await createOffering(payload)
+      message.success('Offering 已创建')
+    } else {
+      await updateOffering(item.seqId!, payload)
+      message.success('Offering 已更新')
+    }
+    offeringDrawer.value = false
+    await loadRelated()
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : '保存失败')
+  } finally {
+    offeringSaving.value = false
+  }
+}
+
+function confirmDeleteOffering(row: Offering) {
+  dialog.warning({
+    title: '删除 Offering',
+    content: `确认删除 ${row.capability}？`,
+    positiveText: '删除',
+    onPositiveClick: async () => {
+      try {
+        await deleteOffering(row.seqId)
+        message.success('已删除')
+        await loadRelated()
+      } catch (e) {
+        message.error(e instanceof Error ? e.message : '删除失败')
+      }
+    },
+  })
+}
+
+function defaultRoute(): Partial<ProviderRoute> & { isCreating: boolean; apiKey: string } {
+  return {
+    isCreating: true,
+    provider: '',
+    priority: routes.value.length,
+    baseUrl: '',
+    apiKey: '',
+    apiModelId: null,
+    active: true,
+  }
+}
+
+function openRouteEditor(row?: ProviderRoute) {
+  if (row) {
+    editingRoute.value = { ...row, isCreating: false, apiKey: '' }
+  } else {
+    editingRoute.value = defaultRoute()
+  }
+  routeDrawer.value = true
+}
+
+async function saveRoute() {
+  if (!editingRoute.value || !modelSlug.value) return
+  const item = editingRoute.value
+  if (!item.provider?.trim()) return message.warning('请填写 provider')
+  if (!item.baseUrl?.trim()) return message.warning('请填写 base_url')
+  if (item.isCreating && !item.apiKey?.trim()) return message.warning('请填写 api_key')
+
+  routeSaving.value = true
+  try {
+    const payload = providerRouteToPayload(item)
+    if (item.isCreating) {
+      await createProviderRoute(modelSlug.value, payload)
+      message.success('Provider Route 已创建')
+    } else {
+      if (!item.apiKey?.trim()) delete payload.api_key
+      await updateProviderRoute(modelSlug.value, item.seqId!, payload)
+      message.success('Provider Route 已更新')
+    }
+    routeDrawer.value = false
+    await loadRelated()
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : '保存失败')
+  } finally {
+    routeSaving.value = false
+  }
+}
+
+function confirmDeleteRoute(row: ProviderRoute) {
+  dialog.warning({
+    title: '删除 Provider Route',
+    content: `确认删除 ${row.provider}（priority ${row.priority}）？`,
+    positiveText: '删除',
+    onPositiveClick: async () => {
+      try {
+        await deleteProviderRoute(modelSlug.value!, row.seqId)
+        message.success('已删除')
+        await loadRelated()
+      } catch (e) {
+        message.error(e instanceof Error ? e.message : '删除失败')
+      }
+    },
+  })
+}
+
+const offeringColumns: DataTableColumns<Offering> = [
+  { title: 'Capability', key: 'capability' },
+  { title: '展示名称', key: 'displayName' },
+  {
+    title: '对外 Slug',
+    key: 'fullSlug',
+    render: (r) => `${modelSlug.value}/${r.capability}`,
+  },
+  {
+    title: '状态',
+    key: 'active',
+    render: (r) =>
+      h(NTag, { type: r.active ? 'success' : 'default', size: 'small' }, () =>
+        r.active ? '启用' : '禁用',
+      ),
+  },
+  { title: '排序', key: 'sortOrder' },
+  {
+    title: '操作',
+    key: 'actions',
+    render: (r) =>
+      h('div', { style: 'display:flex;gap:8px' }, [
+        h(NButton, { size: 'small', onClick: () => openOfferingEditor(r) }, () => '编辑'),
+        h(NButton, { size: 'small', type: 'error', onClick: () => confirmDeleteOffering(r) }, () => '删除'),
+      ]),
+  },
+]
+
+const routeColumns: DataTableColumns<ProviderRoute> = [
+  { title: 'Provider', key: 'provider' },
+  { title: 'Priority', key: 'priority' },
+  { title: 'Base URL', key: 'baseUrl', ellipsis: { tooltip: true } },
+  { title: 'API Model ID', key: 'apiModelId', render: (r) => r.apiModelId || '（继承基座）' },
+  {
+    title: '状态',
+    key: 'active',
+    render: (r) =>
+      h(NTag, { type: r.active ? 'success' : 'default', size: 'small' }, () =>
+        r.active ? '启用' : '禁用',
+      ),
+  },
+  {
+    title: '操作',
+    key: 'actions',
+    render: (r) =>
+      h('div', { style: 'display:flex;gap:8px' }, [
+        h(NButton, { size: 'small', onClick: () => openRouteEditor(r) }, () => '编辑'),
+        h(NButton, { size: 'small', type: 'error', onClick: () => confirmDeleteRoute(r) }, () => '删除'),
+      ]),
+  },
+]
 
 onBeforeRouteLeave((_to, _from, next) => {
   if (!dirty.value) return next()
@@ -205,129 +406,171 @@ onBeforeRouteLeave((_to, _from, next) => {
   <div>
     <div class="page-header">
       <h1 class="page-title">
-        {{
-          isNew
-            ? route.query.copyFrom
-              ? `创建模型 · 复制自 ${route.query.copyFrom}`
-              : '创建模型'
-            : `编辑模型 · ${form.id}`
-        }}
+        {{ isNew ? '创建基座模型' : `编辑基座模型 · ${baseForm.slug}` }}
       </h1>
       <div>
-        <NButton style="margin-right: 8px" @click="router.push('/models')">取消</NButton>
-        <NButton type="primary" :loading="saving" @click="save">保存</NButton>
+        <NButton style="margin-right: 8px" @click="router.push('/models')">返回列表</NButton>
+        <NButton type="primary" :loading="saving" @click="saveBaseModel">
+          保存基座模型
+        </NButton>
       </div>
     </div>
 
-    <NTabs type="line" @update:value="markDirty">
-      <NTabPane name="basic" tab="基本信息">
-        <LocaleTabs v-model:locale="basicLocale">
-          <NForm label-placement="top" style="max-width: 640px">
-            <NFormItem label="ID *">
-              <NInput v-model:value="form.id" :disabled="!isNew" @update:value="markDirty" />
-            </NFormItem>
-            <NFormItem :label="basicLocale === 'en-US' ? '完整名称 *' : '完整名称'">
-              <NInput v-model:value="form.name![basicLocale]" @update:value="markDirty" />
-            </NFormItem>
-            <NFormItem label="展示名称">
-              <NInput v-model:value="form.displayName![basicLocale]" @update:value="markDirty" />
-            </NFormItem>
-            <NFormItem label="提供商 *">
-              <NInput v-model:value="form.provider" @update:value="markDirty" />
-            </NFormItem>
-            <NFormItem label="能力 *">
-              <NDynamicTags v-model:value="capabilities" />
-            </NFormItem>
-            <NFormItem :label="basicLocale === 'en-US' ? '描述 *' : '描述'">
-              <textarea v-model="form.description![basicLocale]" class="textarea" rows="3" @input="markDirty" />
-            </NFormItem>
-            <NFormItem label="缩略图 URL">
-              <NInput v-model:value="form.thumbnailUrl" @update:value="markDirty" />
-            </NFormItem>
-            <NFormItem label="图标 URL">
-              <NInput v-model:value="form.iconUrl" @update:value="markDirty" />
-            </NFormItem>
-            <NFormItem label="model_path *">
-              <NInput v-model:value="form.modelPath" @update:value="markDirty" />
-            </NFormItem>
-            <NFormItem label="api_model_id *">
-              <NInput v-model:value="form.apiModelId" @update:value="markDirty" />
-            </NFormItem>
-          </NForm>
-        </LocaleTabs>
-        <NForm label-placement="top" style="max-width: 640px; margin-top: 8px">
-          <NFormItem label="热门">
-            <NSwitch v-model:value="form.isHot" @update:value="markDirty" />
+    <NTabs type="line">
+      <NTabPane name="base" tab="基座模型">
+        <NForm label-placement="top" style="max-width: 640px">
+          <NFormItem label="Slug *">
+            <NInput
+              v-model:value="baseForm.slug"
+              :disabled="!isNew"
+              placeholder="如 seedance-2.0"
+              @update:value="markDirty"
+            />
           </NFormItem>
-          <NFormItem label="新品">
-            <NSwitch v-model:value="form.isNew" @update:value="markDirty" />
+          <NFormItem label="分类">
+            <NSelect
+              v-model:value="baseForm.category"
+              :options="categoryOptions"
+              @update:value="markDirty"
+            />
+          </NFormItem>
+          <NFormItem label="计价模式 *">
+            <NSelect v-model:value="baseForm.mode" :options="modeOptions" @update:value="markDirty" />
+          </NFormItem>
+          <NFormItem label="API Model ID">
+            <NInput
+              v-model:value="baseForm.apiModelId"
+              placeholder="upstream model 名，可被 Route 覆盖"
+              @update:value="markDirty"
+            />
+          </NFormItem>
+          <NFormItem label="内部备注">
+            <textarea v-model="baseForm.description" class="textarea" rows="3" @input="markDirty" />
+          </NFormItem>
+          <NFormItem label="Rate JSON *">
+            <JsonEditor v-model="rateJson" @update:model-value="markDirty" />
           </NFormItem>
           <NFormItem label="排序">
-            <NInputNumber v-model:value="form.sortOrder" @update:value="markDirty" />
+            <NInputNumber v-model:value="baseForm.sortOrder" @update:value="markDirty" />
           </NFormItem>
-          <NFormItem label="上架">
-            <NSwitch v-model:value="form.active" @update:value="markDirty" />
-          </NFormItem>
-        </NForm>
-      </NTabPane>
-
-      <NTabPane name="pricing" tab="定价">
-        <NForm label-placement="top" style="max-width: 480px">
-          <NFormItem label="起价 USD">
-            <NInputNumber v-model:value="form.startingPriceUsd" :step="0.001" @update:value="markDirty" />
-          </NFormItem>
-          <NFormItem label="标准价 USD">
-            <NInputNumber v-model:value="form.standardPriceUsd" :step="0.001" @update:value="markDirty" />
-          </NFormItem>
-          <NFormItem label="计价单位">
-            <NSelect
-              v-model:value="form.priceUnit"
-              :options="priceUnitOptions"
-              @update:value="markDirty"
-            />
-          </NFormItem>
-          <NFormItem label="价格详情">
-            <NInput v-model:value="form.priceDetail" placeholder="如 720p" @update:value="markDirty" />
-          </NFormItem>
-          <NFormItem label="折扣 %">
-            <NInputNumber v-model:value="form.discountPercent" :min="0" :max="100" @update:value="markDirty" />
-          </NFormItem>
-          <NFormItem label="单次运行价">
-            <NInputNumber v-model:value="form.perRunPriceUsd" :step="0.01" @update:value="markDirty" />
-          </NFormItem>
-          <NFormItem label="runs/10 USD">
-            <NInputNumber v-model:value="form.runsPerTenUsd" @update:value="markDirty" />
+          <NFormItem label="启用">
+            <NSwitch v-model:value="baseForm.active" @update:value="markDirty" />
           </NFormItem>
         </NForm>
       </NTabPane>
 
-      <NTabPane name="schema" tab="Input Schema">
-        <JsonEditor v-model="schemaJson" @update:model-value="markDirty" />
+      <NTabPane name="offerings" tab="能力条目 (Offering)" :disabled="isNew">
+        <div style="margin-bottom: 12px">
+          <NButton type="primary" @click="openOfferingEditor()">添加 Offering</NButton>
+        </div>
+        <NDataTable :columns="offeringColumns" :data="offerings" :scroll-x="900" />
       </NTabPane>
 
-      <NTabPane name="docs" tab="文档 FAQ">
-        <LocaleTabs v-model:locale="docsLocale">
-          <NFormItem label="readme_md">
-            <textarea v-model="form.readmeMd![docsLocale]" class="textarea" rows="8" @input="markDirty" />
-          </NFormItem>
-          <NButton size="small" @click="addFaq">添加 FAQ</NButton>
-          <div v-for="(item, i) in faqItems" :key="i" class="faq-item">
-            <NInput
-              v-model:value="item.question[docsLocale]"
-              placeholder="问题"
-              @update:value="markDirty"
-            />
-            <textarea
-              v-model="item.answer[docsLocale]"
-              class="textarea"
-              rows="2"
-              placeholder="回答"
-              @input="markDirty"
-            />
-          </div>
-        </LocaleTabs>
+      <NTabPane name="routes" tab="Provider 路由" :disabled="isNew">
+        <div style="margin-bottom: 12px">
+          <NButton type="primary" @click="openRouteEditor()">添加 Route</NButton>
+        </div>
+        <NDataTable :columns="routeColumns" :data="routes" :scroll-x="900" />
       </NTabPane>
     </NTabs>
+
+    <NDrawer v-model:show="offeringDrawer" :width="640" placement="right">
+      <NDrawerContent :title="editingOffering?.isCreating ? '创建 Offering' : '编辑 Offering'" closable>
+        <NForm v-if="editingOffering" label-placement="top">
+          <NFormItem label="Capability *">
+            <NInput
+              v-model:value="editingOffering.capability"
+              :disabled="!editingOffering.isCreating"
+              placeholder="如 text-to-video"
+            />
+          </NFormItem>
+          <NFormItem label="展示名称 *">
+            <NInput v-model:value="editingOffering.displayName" />
+          </NFormItem>
+          <NFormItem label="描述">
+            <textarea v-model="editingOffering.description" class="textarea" rows="3" />
+          </NFormItem>
+          <NFormItem label="缩略图 URL">
+            <NInput v-model:value="editingOffering.thumbnailUrl" />
+          </NFormItem>
+          <NFormItem label="图标 URL">
+            <NInput v-model:value="editingOffering.iconUrl" />
+          </NFormItem>
+          <NFormItem label="起价 USD">
+            <NInputNumber v-model:value="editingOffering.startingPriceUsd" :step="0.001" />
+          </NFormItem>
+          <NFormItem label="标准价 USD">
+            <NInputNumber v-model:value="editingOffering.standardPriceUsd" :step="0.001" />
+          </NFormItem>
+          <NFormItem label="计价单位">
+            <NSelect v-model:value="editingOffering.priceUnit" :options="priceUnitOptions" clearable />
+          </NFormItem>
+          <NFormItem label="价格详情">
+            <NInput v-model:value="editingOffering.priceDetail" placeholder="如 480p" />
+          </NFormItem>
+          <NFormItem label="热门">
+            <NSwitch v-model:value="editingOffering.isHot" />
+          </NFormItem>
+          <NFormItem label="新品">
+            <NSwitch v-model:value="editingOffering.isNew" />
+          </NFormItem>
+          <NFormItem label="排序">
+            <NInputNumber v-model:value="editingOffering.sortOrder" />
+          </NFormItem>
+          <NFormItem label="启用">
+            <NSwitch v-model:value="editingOffering.active" />
+          </NFormItem>
+          <NFormItem label="Input Schema">
+            <JsonEditor v-model="schemaJson" />
+          </NFormItem>
+          <LocaleTabs v-model:locale="docsLocale">
+            <NFormItem label="Readme">
+              <textarea v-model="readmeLocalized[docsLocale]" class="textarea" rows="6" />
+            </NFormItem>
+          </LocaleTabs>
+        </NForm>
+        <template #footer>
+          <NButton @click="offeringDrawer = false">取消</NButton>
+          <NButton type="primary" :loading="offeringSaving" style="margin-left: 8px" @click="saveOffering">
+            保存
+          </NButton>
+        </template>
+      </NDrawerContent>
+    </NDrawer>
+
+    <NDrawer v-model:show="routeDrawer" :width="560" placement="right">
+      <NDrawerContent :title="editingRoute?.isCreating ? '创建 Provider Route' : '编辑 Provider Route'" closable>
+        <NForm v-if="editingRoute" label-placement="top">
+          <NFormItem label="Provider *">
+            <NInput v-model:value="editingRoute.provider" placeholder="如 byteplus" />
+          </NFormItem>
+          <NFormItem label="Priority">
+            <NInputNumber v-model:value="editingRoute.priority" />
+          </NFormItem>
+          <NFormItem label="Base URL *">
+            <NInput v-model:value="editingRoute.baseUrl" />
+          </NFormItem>
+          <NFormItem :label="editingRoute.isCreating ? 'API Key *' : 'API Key（留空则不修改）'">
+            <NInput v-model:value="editingRoute.apiKey" type="password" show-password-on="click" />
+          </NFormItem>
+          <NFormItem label="API Model ID">
+            <NInput
+              v-model:value="editingRoute.apiModelId"
+              placeholder="留空则继承基座 api_model_id"
+            />
+          </NFormItem>
+          <NFormItem label="启用">
+            <NSwitch v-model:value="editingRoute.active" />
+          </NFormItem>
+        </NForm>
+        <template #footer>
+          <NButton @click="routeDrawer = false">取消</NButton>
+          <NButton type="primary" :loading="routeSaving" style="margin-left: 8px" @click="saveRoute">
+            保存
+          </NButton>
+        </template>
+      </NDrawerContent>
+    </NDrawer>
   </div>
 </template>
 
@@ -338,11 +581,5 @@ onBeforeRouteLeave((_to, _from, next) => {
   border: 1px solid #d1d5db;
   border-radius: 6px;
   font-family: inherit;
-}
-.faq-item {
-  margin-top: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
 }
 </style>

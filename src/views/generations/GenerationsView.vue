@@ -12,7 +12,7 @@ import {
   type DataTableColumns,
 } from 'naive-ui'
 import { fetchGenerations } from '@/api/generations'
-import { fetchModels } from '@/api/models'
+import { fetchBaseModels, fetchOfferings } from '@/api/models'
 import StatusTag from '@/components/StatusTag.vue'
 import CopyText from '@/components/CopyText.vue'
 import { formatUsd } from '@/utils/currency'
@@ -75,8 +75,16 @@ async function load() {
 }
 
 onMounted(async () => {
-  const models = await fetchModels({ limit: 100 })
-  modelOptions.value = [{ label: '全部模型', value: '' }, ...models.items.map((m) => ({ label: m.id, value: m.id }))]
+  const [baseModels, offerings] = await Promise.all([fetchBaseModels(), fetchOfferings()])
+  const slugBySeqId = new Map(baseModels.map((m) => [m.seqId, m.slug]))
+  modelOptions.value = [
+    { label: '全部模型', value: '' },
+    ...offerings.map((o) => {
+      const slug = slugBySeqId.get(o.modelId)
+      const fullSlug = slug ? `${slug}/${o.capability}` : String(o.seqId)
+      return { label: fullSlug, value: fullSlug }
+    }),
+  ]
   await load()
 })
 

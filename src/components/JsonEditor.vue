@@ -28,10 +28,20 @@ function formatJson() {
 </script>
 
 <template>
-  <div>
+  <div class="json-editor">
     <NSpace style="margin-bottom: 8px">
       <NButton size="small" @click="formatJson">Format JSON</NButton>
     </NSpace>
     <NInput v-model:value="local" type="textarea" :rows="16" class="mono" />
   </div>
 </template>
+
+<style scoped>
+.json-editor {
+  width: 100%;
+}
+
+.json-editor :deep(.n-input) {
+  width: 100%;
+}
+</style>

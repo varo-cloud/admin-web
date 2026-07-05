@@ -1,170 +1,268 @@
 import { http, unwrap } from './http'
-import type { AdminModelDetail, AdminModelListItem, ModelsPage } from '@/types/admin'
-import type { LocalizedString, ModelFaqItem, PricingPriceUnit } from '@/types'
+import type { BaseModel, ModelCategory, Offering, PricingMode, ProviderRoute } from '@/types/admin'
+import type { LocalizedString } from '@/types'
 import { localizedStringToPayload, mapApiLocalized } from '@/utils/locale'
 
-interface ApiModelListItem {
-  id: string
-  name: LocalizedString
-  display_name?: LocalizedString
-  provider: string
-  capabilities: string[]
+function parseTimestamp(value: string | number): number {
+  if (typeof value === 'number') return value
+  const ms = Date.parse(value)
+  return Number.isFinite(ms) ? ms : 0
+}
+
+interface ApiBaseModel {
+  seq_id: number
+  slug: string
+  category: ModelCategory
+  api_model_id: string | null
+  mode: PricingMode
+  rate: Record<string, unknown>
+  description: string
   active: boolean
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
+interface ApiOffering {
+  seq_id: number
+  model_id: number
+  capability: string
+  display_name: string
+  description: string
+  thumbnail_url: string | null
+  icon_url: string | null
+  starting_price_usd: number | null
+  standard_price_usd: number | null
+  price_unit: string | null
+  price_detail: string | null
+  readme_md: string | null
+  readme_md_i18n: Record<string, string> | null
+  faq: Array<Record<string, unknown>>
+  faq_i18n: Record<string, unknown> | null
+  input_schema: Record<string, unknown> | null
   is_hot: boolean
   is_new: boolean
-  starting_price_usd: number
-  price_unit: PricingPriceUnit
+  active: boolean
   sort_order: number
-  updated_at: number
+  created_at: string
+  updated_at: string
 }
 
-interface ApiModelDetail extends ApiModelListItem {
-  description: LocalizedString
-  thumbnail_url?: string
-  icon_url?: string
-  model_path: string
-  api_model_id: string
-  standard_price_usd?: number
-  price_detail?: string
-  discount_percent?: number
-  per_run_price_usd?: number
-  runs_per_ten_usd?: number
-  input_schema: Record<string, unknown>
-  readme_md?: LocalizedString | string
-  faq: ApiFaqItem[]
-  created_at: number
+interface ApiProviderRoute {
+  seq_id: number
+  model_id: number
+  provider: string
+  priority: number
+  base_url: string
+  api_model_id: string | null
+  active: boolean
+  created_at: string
+  updated_at: string
 }
 
-interface ApiFaqItem {
-  question: LocalizedString
-  answer: LocalizedString
-}
-
-function mapFaqItem(raw: ApiFaqItem): ModelFaqItem {
+function mapBaseModel(raw: ApiBaseModel): BaseModel {
   return {
-    question: mapApiLocalized(raw.question),
-    answer: mapApiLocalized(raw.answer),
-  }
-}
-
-function mapListItem(raw: ApiModelListItem): AdminModelListItem {
-  return {
-    id: raw.id,
-    name: mapApiLocalized(raw.name),
-    displayName: raw.display_name ? mapApiLocalized(raw.display_name) : undefined,
-    provider: raw.provider,
-    capabilities: raw.capabilities ?? [],
+    seqId: raw.seq_id,
+    slug: raw.slug,
+    category: raw.category,
+    apiModelId: raw.api_model_id,
+    mode: raw.mode,
+    rate: raw.rate ?? {},
+    description: raw.description ?? '',
     active: raw.active,
-    isHot: raw.is_hot ?? false,
-    isNew: raw.is_new ?? false,
-    startingPriceUsd: raw.starting_price_usd,
-    priceUnit: raw.price_unit,
     sortOrder: raw.sort_order,
-    updatedAt: raw.updated_at,
+    createdAt: parseTimestamp(raw.created_at),
+    updatedAt: parseTimestamp(raw.updated_at),
   }
 }
 
-function mapReadmeMd(raw: LocalizedString | string | undefined): LocalizedString | undefined {
-  if (raw == null) return undefined
-  if (typeof raw === 'string') return raw.trim() ? { 'en-US': raw } : undefined
-  return mapApiLocalized(raw)
-}
-
-function mapDetail(raw: ApiModelDetail): AdminModelDetail {
+function mapOffering(raw: ApiOffering): Offering {
   return {
-    ...mapListItem(raw),
-    description: mapApiLocalized(raw.description),
+    seqId: raw.seq_id,
+    modelId: raw.model_id,
+    capability: raw.capability,
+    displayName: raw.display_name,
+    description: raw.description ?? '',
     thumbnailUrl: raw.thumbnail_url,
     iconUrl: raw.icon_url,
-    modelPath: raw.model_path,
-    apiModelId: raw.api_model_id,
+    startingPriceUsd: raw.starting_price_usd,
     standardPriceUsd: raw.standard_price_usd,
+    priceUnit: raw.price_unit,
     priceDetail: raw.price_detail,
-    discountPercent: raw.discount_percent,
-    perRunPriceUsd: raw.per_run_price_usd,
-    runsPerTenUsd: raw.runs_per_ten_usd,
+    readmeMd: raw.readme_md,
+    readmeMdI18n: raw.readme_md_i18n,
+    faq: raw.faq ?? [],
+    faqI18n: raw.faq_i18n,
     inputSchema: raw.input_schema,
-    readmeMd: mapReadmeMd(raw.readme_md),
-    faq: (raw.faq ?? []).map(mapFaqItem),
-    createdAt: raw.created_at,
+    isHot: raw.is_hot ?? false,
+    isNew: raw.is_new ?? false,
+    active: raw.active,
+    sortOrder: raw.sort_order,
+    createdAt: parseTimestamp(raw.created_at),
+    updatedAt: parseTimestamp(raw.updated_at),
   }
 }
 
-export interface FetchModelsParams {
-  offset?: number
-  limit?: number
-  q?: string
-  active?: boolean
+function mapProviderRoute(raw: ApiProviderRoute): ProviderRoute {
+  return {
+    seqId: raw.seq_id,
+    modelId: raw.model_id,
+    provider: raw.provider,
+    priority: raw.priority,
+    baseUrl: raw.base_url,
+    apiModelId: raw.api_model_id,
+    active: raw.active,
+    createdAt: parseTimestamp(raw.created_at),
+    updatedAt: parseTimestamp(raw.updated_at),
+  }
 }
 
-export async function fetchModels(params: FetchModelsParams = {}): Promise<ModelsPage> {
-  const query: Record<string, string | number> = { ...params } as Record<string, string | number>
-  if (params.active !== undefined) query.active = String(params.active)
-  const raw = await unwrap<{ items: ApiModelListItem[]; total: number; offset: number; limit: number }>(
-    http.get('/admin/models', { params: query }),
-  )
-  return { items: raw.items.map(mapListItem), total: raw.total, offset: raw.offset, limit: raw.limit }
-}
-
-export async function fetchModelDetail(modelId: string): Promise<AdminModelDetail> {
-  const raw = await unwrap<ApiModelDetail>(http.get(`/admin/models/${encodeURIComponent(modelId)}`))
-  return mapDetail(raw)
-}
-
-export async function createModel(payload: Record<string, unknown>): Promise<AdminModelDetail> {
-  const raw = await unwrap<ApiModelDetail>(http.post('/admin/models', payload))
-  return mapDetail(raw)
-}
-
-export async function updateModel(modelId: string, payload: Record<string, unknown>): Promise<AdminModelDetail> {
-  const raw = await unwrap<ApiModelDetail>(
-    http.put(`/admin/models/${encodeURIComponent(modelId)}`, payload),
-  )
-  return mapDetail(raw)
-}
-
-export async function updateModelStatus(modelId: string, active: boolean) {
-  return unwrap(http.patch(`/admin/models/${encodeURIComponent(modelId)}/status`, { active }))
-}
-
-export async function deleteModel(modelId: string) {
-  return unwrap(http.delete(`/admin/models/${encodeURIComponent(modelId)}`))
-}
-
-export function modelToPayload(model: Partial<AdminModelDetail>): Record<string, unknown> {
+export function baseModelToPayload(model: Partial<BaseModel>): Record<string, unknown> {
   const payload: Record<string, unknown> = {}
-  if (model.id !== undefined) payload.id = model.id
-  if (model.name !== undefined) payload.name = localizedStringToPayload(model.name)
-  if (model.displayName !== undefined) {
-    payload.display_name = model.displayName ? localizedStringToPayload(model.displayName) : undefined
-  }
-  if (model.provider !== undefined) payload.provider = model.provider
-  if (model.capabilities !== undefined) payload.capabilities = model.capabilities
-  if (model.description !== undefined) payload.description = localizedStringToPayload(model.description)
-  if (model.thumbnailUrl !== undefined) payload.thumbnail_url = model.thumbnailUrl
-  if (model.iconUrl !== undefined) payload.icon_url = model.iconUrl
-  if (model.modelPath !== undefined) payload.model_path = model.modelPath
+  if (model.slug !== undefined) payload.slug = model.slug
+  if (model.category !== undefined) payload.category = model.category
+  if (model.mode !== undefined) payload.mode = model.mode
+  if (model.rate !== undefined) payload.rate = model.rate
   if (model.apiModelId !== undefined) payload.api_model_id = model.apiModelId
+  if (model.description !== undefined) payload.description = model.description
   if (model.active !== undefined) payload.active = model.active
-  if (model.isHot !== undefined) payload.is_hot = model.isHot
-  if (model.isNew !== undefined) payload.is_new = model.isNew
   if (model.sortOrder !== undefined) payload.sort_order = model.sortOrder
-  if (model.startingPriceUsd !== undefined) payload.starting_price_usd = model.startingPriceUsd
-  if (model.standardPriceUsd !== undefined) payload.standard_price_usd = model.standardPriceUsd
-  if (model.priceUnit !== undefined) payload.price_unit = model.priceUnit
-  if (model.priceDetail !== undefined) payload.price_detail = model.priceDetail
-  if (model.discountPercent !== undefined) payload.discount_percent = model.discountPercent
-  if (model.perRunPriceUsd !== undefined) payload.per_run_price_usd = model.perRunPriceUsd
-  if (model.runsPerTenUsd !== undefined) payload.runs_per_ten_usd = model.runsPerTenUsd
-  if (model.inputSchema !== undefined) payload.input_schema = model.inputSchema
-  if (model.readmeMd !== undefined) {
-    payload.readme_md = model.readmeMd ? localizedStringToPayload(model.readmeMd) : undefined
-  }
-  if (model.faq !== undefined) {
-    payload.faq = model.faq.map((item) => ({
-      question: localizedStringToPayload(item.question),
-      answer: localizedStringToPayload(item.answer),
-    }))
-  }
   return payload
+}
+
+export function offeringToPayload(offering: Partial<Offering>): Record<string, unknown> {
+  const payload: Record<string, unknown> = {}
+  if (offering.modelId !== undefined) payload.model_id = offering.modelId
+  if (offering.capability !== undefined) payload.capability = offering.capability
+  if (offering.displayName !== undefined) payload.display_name = offering.displayName
+  if (offering.description !== undefined) payload.description = offering.description
+  if (offering.thumbnailUrl !== undefined) payload.thumbnail_url = offering.thumbnailUrl
+  if (offering.iconUrl !== undefined) payload.icon_url = offering.iconUrl
+  if (offering.startingPriceUsd !== undefined) payload.starting_price_usd = offering.startingPriceUsd
+  if (offering.standardPriceUsd !== undefined) payload.standard_price_usd = offering.standardPriceUsd
+  if (offering.priceUnit !== undefined) payload.price_unit = offering.priceUnit
+  if (offering.priceDetail !== undefined) payload.price_detail = offering.priceDetail
+  if (offering.readmeMd !== undefined) payload.readme_md = offering.readmeMd
+  if (offering.readmeMdI18n !== undefined) payload.readme_md_i18n = offering.readmeMdI18n
+  if (offering.faq !== undefined) payload.faq = offering.faq
+  if (offering.faqI18n !== undefined) payload.faq_i18n = offering.faqI18n
+  if (offering.inputSchema !== undefined) payload.input_schema = offering.inputSchema
+  if (offering.isHot !== undefined) payload.is_hot = offering.isHot
+  if (offering.isNew !== undefined) payload.is_new = offering.isNew
+  if (offering.active !== undefined) payload.active = offering.active
+  if (offering.sortOrder !== undefined) payload.sort_order = offering.sortOrder
+  return payload
+}
+
+export function providerRouteToPayload(
+  route: Partial<ProviderRoute> & { apiKey?: string },
+): Record<string, unknown> {
+  const payload: Record<string, unknown> = {}
+  if (route.provider !== undefined) payload.provider = route.provider
+  if (route.priority !== undefined) payload.priority = route.priority
+  if (route.baseUrl !== undefined) payload.base_url = route.baseUrl
+  if (route.apiKey !== undefined) payload.api_key = route.apiKey
+  if (route.apiModelId !== undefined) payload.api_model_id = route.apiModelId
+  if (route.active !== undefined) payload.active = route.active
+  return payload
+}
+
+/** @deprecated 兼容旧调用，返回基座模型列表 */
+export async function fetchModels(_params?: { limit?: number }) {
+  const items = await fetchBaseModels()
+  return { items, total: items.length, offset: 0, limit: items.length }
+}
+
+export async function fetchBaseModels(): Promise<BaseModel[]> {
+  const raw = await unwrap<ApiBaseModel[]>(http.get('/admin/base-models'))
+  return raw.map(mapBaseModel)
+}
+
+export async function fetchBaseModel(slug: string): Promise<BaseModel> {
+  const raw = await unwrap<ApiBaseModel>(http.get(`/admin/base-models/${encodeURIComponent(slug)}`))
+  return mapBaseModel(raw)
+}
+
+export async function createBaseModel(payload: Record<string, unknown>): Promise<BaseModel> {
+  const raw = await unwrap<ApiBaseModel>(http.post('/admin/base-models', payload))
+  return mapBaseModel(raw)
+}
+
+export async function updateBaseModel(slug: string, payload: Record<string, unknown>): Promise<BaseModel> {
+  const raw = await unwrap<ApiBaseModel>(
+    http.put(`/admin/base-models/${encodeURIComponent(slug)}`, payload),
+  )
+  return mapBaseModel(raw)
+}
+
+export async function deleteBaseModel(slug: string) {
+  return unwrap(http.delete(`/admin/base-models/${encodeURIComponent(slug)}`))
+}
+
+export async function fetchOfferings(modelId?: number): Promise<Offering[]> {
+  const params = modelId != null ? { model_id: modelId } : undefined
+  const raw = await unwrap<ApiOffering[]>(http.get('/admin/model-offerings', { params }))
+  return raw.map(mapOffering)
+}
+
+export async function fetchOffering(seqId: number): Promise<Offering> {
+  const raw = await unwrap<ApiOffering>(http.get(`/admin/model-offerings/${seqId}`))
+  return mapOffering(raw)
+}
+
+export async function createOffering(payload: Record<string, unknown>): Promise<Offering> {
+  const raw = await unwrap<ApiOffering>(http.post('/admin/model-offerings', payload))
+  return mapOffering(raw)
+}
+
+export async function updateOffering(seqId: number, payload: Record<string, unknown>): Promise<Offering> {
+  const raw = await unwrap<ApiOffering>(http.put(`/admin/model-offerings/${seqId}`, payload))
+  return mapOffering(raw)
+}
+
+export async function deleteOffering(seqId: number) {
+  return unwrap(http.delete(`/admin/model-offerings/${seqId}`))
+}
+
+export async function fetchProviderRoutes(slug: string): Promise<ProviderRoute[]> {
+  const raw = await unwrap<ApiProviderRoute[]>(
+    http.get(`/admin/base-models/${encodeURIComponent(slug)}/provider-routes`),
+  )
+  return raw.map(mapProviderRoute)
+}
+
+export async function createProviderRoute(
+  slug: string,
+  payload: Record<string, unknown>,
+): Promise<ProviderRoute> {
+  const raw = await unwrap<ApiProviderRoute>(
+    http.post(`/admin/base-models/${encodeURIComponent(slug)}/provider-routes`, payload),
+  )
+  return mapProviderRoute(raw)
+}
+
+export async function updateProviderRoute(
+  slug: string,
+  seqId: number,
+  payload: Record<string, unknown>,
+): Promise<ProviderRoute> {
+  const raw = await unwrap<ApiProviderRoute>(
+    http.put(`/admin/base-models/${encodeURIComponent(slug)}/provider-routes/${seqId}`, payload),
+  )
+  return mapProviderRoute(raw)
+}
+
+export async function deleteProviderRoute(slug: string, seqId: number) {
+  return unwrap(http.delete(`/admin/base-models/${encodeURIComponent(slug)}/provider-routes/${seqId}`))
+}
+
+export function localizedToI18n(value: LocalizedString | undefined): Record<string, string> | null {
+  if (!value) return null
+  const payload = localizedStringToPayload(value)
+  return Object.keys(payload).length > 0 ? payload : null
+}
+
+export function i18nToLocalized(value: Record<string, string> | null | undefined): LocalizedString {
+  if (!value) return { 'en-US': '', 'zh-CN': '' }
+  return mapApiLocalized(value)
 }

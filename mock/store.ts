@@ -12,32 +12,56 @@ export interface MockUser {
   spentThisMonthUsd: number
 }
 
-export interface MockModel {
-  id: string
-  name: { 'en-US': string; 'zh-CN'?: string }
-  display_name?: { 'en-US': string; 'zh-CN'?: string }
-  provider: string
-  capabilities: string[]
-  description: { 'en-US': string; 'zh-CN'?: string }
-  thumbnail_url?: string
-  model_path: string
-  api_model_id: string
+export interface MockBaseModel {
+  seq_id: number
+  slug: string
+  category: 'video' | 'image' | 'llm'
+  api_model_id: string | null
+  mode: 'video' | 'audio' | 'dashscope_video' | 'sandbase_video'
+  rate: Record<string, unknown>
+  description: string
   active: boolean
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
+export interface MockOffering {
+  seq_id: number
+  model_id: number
+  capability: string
+  display_name: string
+  description: string
+  thumbnail_url: string | null
+  icon_url: string | null
+  starting_price_usd: number | null
+  standard_price_usd: number | null
+  price_unit: string | null
+  price_detail: string | null
+  readme_md: string | null
+  readme_md_i18n: Record<string, string> | null
+  faq: Array<Record<string, unknown>>
+  faq_i18n: Record<string, unknown> | null
+  input_schema: Record<string, unknown> | null
   is_hot: boolean
   is_new: boolean
+  active: boolean
   sort_order: number
-  starting_price_usd: number
-  standard_price_usd?: number
-  price_unit: string
-  price_detail?: string
-  discount_percent?: number
-  per_run_price_usd?: number
-  runs_per_ten_usd?: number
-  input_schema: Record<string, unknown>
-  readme_md?: { 'en-US': string; 'zh-CN'?: string }
-  faq: { question: { 'en-US': string; 'zh-CN'?: string }; answer: { 'en-US': string; 'zh-CN'?: string } }[]
-  created_at: number
-  updated_at: number
+  created_at: string
+  updated_at: string
+}
+
+export interface MockProviderRoute {
+  seq_id: number
+  model_id: number
+  provider: string
+  priority: number
+  base_url: string
+  api_key_encrypted: string
+  api_model_id: string | null
+  active: boolean
+  created_at: string
+  updated_at: string
 }
 
 export interface MockGeneration {
@@ -118,6 +142,10 @@ function daysAgo(n: number) {
   return now - n * day
 }
 
+function isoDaysAgo(n: number) {
+  return new Date(daysAgo(n)).toISOString()
+}
+
 export const mockStore = {
   users: [
     {
@@ -166,37 +194,52 @@ export const mockStore = {
     },
   ] as MockUser[],
 
-  models: [
+  baseModels: [
     {
-      id: 'seedance-t2v',
-      name: {
-        'en-US': 'Seedance 2.0 Text-to-Video',
-        'zh-CN': 'Seedance 2.0 文生视频',
-      },
-      display_name: {
-        'en-US': 'Seedance 2.0',
-        'zh-CN': 'Seedance 2.0',
-      },
-      provider: 'ByteDance',
-      capabilities: ['text-to-video'],
-      description: {
-        'en-US': 'Text-to-video generation model.',
-        'zh-CN': '高质量文生视频模型',
-      },
-      thumbnail_url: 'https://picsum.photos/seed/seedance/400/225',
-      model_path: 'bytedance/seedance-2.0/text-to-video',
+      seq_id: 1,
+      slug: 'seedance-2.0',
+      category: 'video',
       api_model_id: 'dreamina-seedance-2-0-260128',
+      mode: 'video',
+      rate: {
+        '480p': { no_video: 7.0, with_video: 4.3 },
+        '720p': { no_video: 7.0, with_video: 4.3 },
+        '1080p': { no_video: 7.7, with_video: 4.7 },
+        '4k': { no_video: 4.0, with_video: 2.4 },
+      },
+      description: 'Hollywood-grade cinematic video model up to 4K.',
       active: true,
-      is_hot: true,
-      is_new: false,
       sort_order: 10,
-      starting_price_usd: 0.072,
+      created_at: isoDaysAgo(60),
+      updated_at: isoDaysAgo(2),
+    },
+  ] as MockBaseModel[],
+
+  offerings: [
+    {
+      seq_id: 1,
+      model_id: 1,
+      capability: 'text-to-video',
+      display_name: 'Seedance 2.0 Text-to-Video',
+      description: 'Hollywood-grade cinematic text-to-video generation up to 4K.',
+      thumbnail_url: 'https://picsum.photos/seed/seedance/400/225',
+      icon_url: null,
+      starting_price_usd: 0.068,
       standard_price_usd: 0.09,
       price_unit: 'per_second',
-      price_detail: '720p',
-      discount_percent: 20,
-      per_run_price_usd: 0.36,
-      runs_per_ten_usd: 27,
+      price_detail: '480p',
+      readme_md: '## Seedance 2.0\n\nText-to-video model.',
+      readme_md_i18n: {
+        'en-US': '## Seedance 2.0\n\nText-to-video model.',
+        'zh-CN': '## Seedance 2.0\n\n文生视频模型。',
+      },
+      faq: [
+        {
+          question: { 'en-US': 'How long can videos be?', 'zh-CN': '支持多长视频？' },
+          answer: { 'en-US': '2-10 seconds', 'zh-CN': '2-10 秒' },
+        },
+      ],
+      faq_i18n: null,
       input_schema: {
         type: 'object',
         properties: {
@@ -205,58 +248,53 @@ export const mockStore = {
         },
         required: ['prompt'],
       },
-      readme_md: {
-        'en-US': '## Seedance 2.0\n\nText-to-video model.',
-        'zh-CN': '## Seedance 2.0\n\n文生视频模型。',
-      },
-      faq: [
-        {
-          question: {
-            'en-US': 'How long can videos be?',
-            'zh-CN': '支持多长视频？',
-          },
-          answer: {
-            'en-US': '2-10 seconds',
-            'zh-CN': '2-10 秒',
-          },
-        },
-      ],
-      created_at: daysAgo(60),
-      updated_at: daysAgo(2),
+      is_hot: true,
+      is_new: false,
+      active: true,
+      sort_order: 10,
+      created_at: isoDaysAgo(60),
+      updated_at: isoDaysAgo(2),
     },
     {
-      id: 'seedance-i2v',
-      name: {
-        'en-US': 'Seedance 2.0 Image-to-Video',
-        'zh-CN': 'Seedance 2.0 图生视频',
-      },
-      display_name: {
-        'en-US': 'Seedance I2V',
-        'zh-CN': 'Seedance 图生视频',
-      },
-      provider: 'ByteDance',
-      capabilities: ['image-to-video'],
-      description: {
-        'en-US': 'Image-to-video generation model.',
-        'zh-CN': '图生视频模型',
-      },
-      model_path: 'bytedance/seedance-2.0/image-to-video',
-      api_model_id: 'dreamina-seedance-i2v',
-      active: false,
-      is_hot: false,
-      is_new: true,
-      sort_order: 20,
+      seq_id: 2,
+      model_id: 1,
+      capability: 'image-to-video',
+      display_name: 'Seedance 2.0 Image-to-Video',
+      description: 'Image-to-video generation model.',
+      thumbnail_url: null,
+      icon_url: null,
       starting_price_usd: 0.084,
       standard_price_usd: 0.1,
       price_unit: 'per_second',
       price_detail: '480p',
-      discount_percent: 15,
-      input_schema: { type: 'object', properties: {} },
+      readme_md: null,
+      readme_md_i18n: null,
       faq: [],
-      created_at: daysAgo(45),
-      updated_at: daysAgo(5),
+      faq_i18n: null,
+      input_schema: { type: 'object', properties: {} },
+      is_hot: false,
+      is_new: true,
+      active: false,
+      sort_order: 20,
+      created_at: isoDaysAgo(45),
+      updated_at: isoDaysAgo(5),
     },
-  ] as MockModel[],
+  ] as MockOffering[],
+
+  providerRoutes: [
+    {
+      seq_id: 1,
+      model_id: 1,
+      provider: 'byteplus',
+      priority: 0,
+      base_url: 'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks',
+      api_key_encrypted: 'mock-encrypted-key',
+      api_model_id: 'dreamina-seedance-2-0-260128',
+      active: true,
+      created_at: isoDaysAgo(60),
+      updated_at: isoDaysAgo(2),
+    },
+  ] as MockProviderRoute[],
 
   generations: [
     {
