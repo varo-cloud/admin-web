@@ -244,7 +244,7 @@ async function saveOffering() {
 
   offeringSaving.value = true
   try {
-    const payload = offeringToPayload(item)
+    const payload = offeringToPayload(item, { includeModelId: !!item.isCreating })
     if (item.isCreating) {
       await createOffering(payload)
       message.success('Offering 已创建')

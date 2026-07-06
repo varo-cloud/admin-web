@@ -130,9 +130,12 @@ export function baseModelToPayload(model: Partial<BaseModel>): Record<string, un
   return payload
 }
 
-export function offeringToPayload(offering: Partial<Offering>): Record<string, unknown> {
+export function offeringToPayload(
+  offering: Partial<Offering>,
+  options: { includeModelId?: boolean } = { includeModelId: true },
+): Record<string, unknown> {
   const payload: Record<string, unknown> = {}
-  if (offering.modelId !== undefined) payload.model_id = offering.modelId
+  if (options.includeModelId && offering.modelId !== undefined) payload.model_id = offering.modelId
   if (offering.capability !== undefined) payload.capability = offering.capability
   if (offering.displayName !== undefined) payload.display_name = offering.displayName
   if (offering.description !== undefined) payload.description = offering.description
