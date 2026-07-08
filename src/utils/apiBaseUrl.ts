@@ -14,14 +14,14 @@ function resolveApiBaseUrl(configured: string): string {
 }
 
 /**
- * Admin API base (default axios client). Deployed: https://staging.admin.varo.cloud/api
+ * Admin API base (default axios client). Deployed: https://admin.varo.cloud/api
  */
 export function apiBaseUrl(): string {
   return resolveApiBaseUrl(import.meta.env.VITE_API_BASE_URL || 'api')
 }
 
 /**
- * User / auth API base (profile, token refresh). Deployed: https://staging.api.varo.cloud/api
+ * User / auth API base (profile, token refresh). Deployed: https://api.varo.cloud/api
  * Falls back to VITE_API_BASE_URL when unset (local dev proxy on /api).
  */
 export function userApiBaseUrl(): string {
