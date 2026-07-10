@@ -30,17 +30,31 @@ function mapListItem(raw: Record<string, unknown>): AdminGenerationListItem {
 }
 
 function mapDetail(raw: Record<string, unknown>): AdminGenerationDetail {
-  const output = (raw.output as AdminGenerationDetail['output']) ?? null
+  const result = raw.result as Record<string, unknown> | undefined
+  const legacyOutput = (raw.output as AdminGenerationDetail['output']) ?? null
+  const output: AdminGenerationDetail['output'] =
+    result && (result.output_url != null || result.type != null)
+      ? {
+          type: String(result.type ?? 'unknown'),
+          url: result.output_url != null ? String(result.output_url) : undefined,
+        }
+      : legacyOutput
   const outputUrl =
-    raw.output_url != null
-      ? String(raw.output_url)
-      : output?.url != null
-        ? String(output.url)
-        : undefined
+    result?.output_url != null
+      ? String(result.output_url)
+      : raw.output_url != null
+        ? String(raw.output_url)
+        : output?.url != null
+          ? String(output.url)
+          : undefined
+  const input =
+    (raw.request as Record<string, unknown> | undefined) ??
+    (raw.input as Record<string, unknown> | undefined) ??
+    {}
   return {
     ...mapListItem(raw),
     apiKeyId: raw.api_key_id ? String(raw.api_key_id) : null,
-    input: (raw.input as Record<string, unknown>) ?? {},
+    input,
     output,
     outputUrl,
     billingRecordId: raw.billing_record_id ? String(raw.billing_record_id) : null,

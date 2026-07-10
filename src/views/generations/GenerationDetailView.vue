@@ -30,10 +30,9 @@ const canRefund = computed(
   () => detail.value && !detail.value.refunded && detail.value.costUsd > 0,
 )
 
-const outputUrl = computed(() => detail.value?.output?.url ?? detail.value?.outputUrl)
+const outputUrl = computed(() => detail.value?.outputUrl ?? detail.value?.output?.url)
 
-/** 设为示例时只使用 output.url，不使用顶层 output_url */
-const exampleOutputUrl = computed(() => detail.value?.output?.url)
+const exampleOutputUrl = computed(() => detail.value?.outputUrl ?? detail.value?.output?.url)
 
 const isCompleted = computed(() => {
   const s = detail.value?.status
