@@ -139,6 +139,56 @@ export function validateExampleForm(
   return null
 }
 
+export function parseOfferingModelId(model: string): { slug: string; capability: string } | null {
+  const trimmed = model.trim()
+  const slash = trimmed.indexOf('/')
+  if (slash <= 0 || slash >= trimmed.length - 1) return null
+  return {
+    slug: trimmed.slice(0, slash),
+    capability: trimmed.slice(slash + 1),
+  }
+}
+
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 48)
+}
+
+export function suggestExampleId(input: Record<string, unknown>, taskId: string): string {
+  const prompt = typeof input.prompt === 'string' ? input.prompt.trim() : ''
+  const fromPrompt = slugify(prompt)
+  if (fromPrompt && ID_PATTERN.test(fromPrompt)) return fromPrompt
+  const short = taskId.replace(/-/g, '').slice(0, 8)
+  return `gen-${short}`
+}
+
+export function suggestExampleTitle(input: Record<string, unknown>): string {
+  const prompt = typeof input.prompt === 'string' ? input.prompt.trim() : ''
+  if (!prompt) return 'Generation example'
+  return prompt.length > 80 ? `${prompt.slice(0, 77)}...` : prompt
+}
+
+export function exampleFormFromGeneration(
+  input: Record<string, unknown>,
+  outputUrl: string,
+  taskId: string,
+  sortOrder = 0,
+): OfferingExampleForm {
+  const title = suggestExampleTitle(input)
+  return {
+    id: suggestExampleId(input, taskId),
+    title: { 'en-US': title, 'zh-CN': '' },
+    description: { 'en-US': '', 'zh-CN': '' },
+    inputJson: JSON.stringify(input ?? {}, null, 2),
+    outputUrl,
+    thumbnailUrl: '',
+    sortOrder,
+  }
+}
+
 export function validateExamplesList(examples: OfferingExample[]): string | null {
   const ids = new Set<string>()
   for (const ex of examples) {
