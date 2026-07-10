@@ -189,6 +189,19 @@ export function exampleFormFromGeneration(
   }
 }
 
+export function upsertExample(
+  examples: OfferingExample[],
+  example: OfferingExample,
+): { list: OfferingExample[]; replaced: boolean } {
+  const idx = examples.findIndex((e) => e.id === example.id)
+  if (idx >= 0) {
+    const list = [...examples]
+    list[idx] = example
+    return { list, replaced: true }
+  }
+  return { list: [...examples, example], replaced: false }
+}
+
 export function validateExamplesList(examples: OfferingExample[]): string | null {
   const ids = new Set<string>()
   for (const ex of examples) {

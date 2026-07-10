@@ -20,6 +20,8 @@ import {
   exampleFormFromGeneration,
   formToExample,
   parseOfferingModelId,
+  suggestExampleId,
+  upsertExample,
   validateExampleForm,
   type OfferingExampleForm,
 } from '@/utils/offeringExamples'
@@ -65,11 +67,13 @@ async function loadOffering() {
       return
     }
     offering.value = match
+    const suggestedId = suggestExampleId(props.input, props.taskId)
+    const existing = match.examples.find((e) => e.id === suggestedId)
     form.value = exampleFormFromGeneration(
       props.input,
       props.outputUrl,
       props.taskId,
-      match.examples.length,
+      existing?.sortOrder ?? match.examples.length,
     )
   } catch (e) {
     message.error(e instanceof Error ? e.message : '加载 offering 失败')
@@ -91,8 +95,13 @@ watch(
 
 async function save() {
   if (!offering.value || !form.value) return
-  const existingIds = offering.value.examples.map((e) => e.id)
-  const err = validateExampleForm(form.value, existingIds)
+  const id = form.value.id.trim()
+  const replacing = offering.value.examples.some((e) => e.id === id)
+  const err = validateExampleForm(
+    form.value,
+    offering.value.examples.map((e) => e.id),
+    replacing ? id : undefined,
+  )
   if (err) return message.warning(err)
 
   let example
@@ -104,12 +113,12 @@ async function save() {
 
   saving.value = true
   try {
-    const nextExamples = [...offering.value.examples, example]
+    const { list: nextExamples, replaced } = upsertExample(offering.value.examples, example)
     const updated = await updateOffering(
       offering.value.seqId,
       offeringToPayload({ examples: nextExamples }),
     )
-    message.success(`已添加示例到 ${props.model}`)
+    message.success(replaced ? `已更新示例「${example.id}」` : `已添加示例到 ${props.model}`)
     emit('saved', updated)
     emit('update:show', false)
   } catch (e) {

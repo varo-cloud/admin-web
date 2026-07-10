@@ -10,10 +10,7 @@ import modelsMock from '../../mock/models'
 import generationsMock from '../../mock/generations'
 import billingMock from '../../mock/billing'
 import billingPackagesMock from '../../mock/billing-packages'
-import apiKeysMock from '../../mock/api-keys'
-import pricingMock from '../../mock/pricing'
 import configMock from '../../mock/config'
-import auditLogsMock from '../../mock/audit-logs'
 import heroCarouselMock from '../../mock/hero-carousel'
 
 const mockModules: MockMethod[] = [
@@ -24,10 +21,7 @@ const mockModules: MockMethod[] = [
   ...generationsMock,
   ...billingMock,
   ...billingPackagesMock,
-  ...apiKeysMock,
-  ...pricingMock,
   ...configMock,
-  ...auditLogsMock,
   ...heroCarouselMock,
 ]
 

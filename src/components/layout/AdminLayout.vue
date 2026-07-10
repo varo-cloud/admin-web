@@ -17,10 +17,7 @@ import {
   CubeOutline,
   FlashOutline,
   CardOutline,
-  KeyOutline,
-  PricetagOutline,
   SettingsOutline,
-  DocumentTextOutline,
   VideocamOutline,
   WalletOutline,
   BusinessOutline,
@@ -45,12 +42,9 @@ const menuOptions: MenuOption[] = [
   { label: '任务', key: '/generations', icon: renderIcon(FlashOutline) },
   { label: '充值订单', key: '/billing/transactions', icon: renderIcon(CardOutline) },
   { label: '充值档位', key: '/billing/packages', icon: renderIcon(WalletOutline) },
-  { label: 'API Keys', key: '/api-keys', icon: renderIcon(KeyOutline) },
-  { label: '定价', key: '/pricing', icon: renderIcon(PricetagOutline) },
   { label: 'Hero 轮播', key: '/content/hero-carousel', icon: renderIcon(VideocamOutline) },
   { label: '文件上传', key: '/content/upload', icon: renderIcon(CloudUploadOutline) },
   { label: '系统配置', key: '/settings', icon: renderIcon(SettingsOutline) },
-  { label: '审计日志', key: '/audit-logs', icon: renderIcon(DocumentTextOutline) },
 ]
 
 const activeKey = computed(() => {

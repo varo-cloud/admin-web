@@ -5,7 +5,6 @@ import type {
   LocalizedString,
   Paginated,
   PaymentProvider,
-  PricingPriceUnit,
   TransactionStatus,
   UserRole,
   UserStatus,
@@ -250,32 +249,6 @@ export interface BillingRecord {
   createdAt: number
 }
 
-export interface AdminApiKeyListItem {
-  id: string
-  userId: string
-  userEmail: string
-  name: string
-  prefix: string
-  isActive: boolean
-  totalCalls: number
-  totalSpendUsd: number
-  lastUsedAt: number | null
-  createdAt: number
-}
-
-export interface PricingItem {
-  id: string
-  modelId: string
-  name: LocalizedString
-  standardPriceUsd: number
-  startingPriceUsd: number
-  priceUnit: PricingPriceUnit
-  discountPercent: number
-  category: string
-  mediaType: string
-  sortOrder: number
-}
-
 export interface ProcessingFee {
   percent: number
   fixedUsd: number
@@ -290,25 +263,10 @@ export interface AdminConfig {
   processingFee: ProcessingFeeByProvider
 }
 
-export interface AuditLog {
-  id: string
-  adminUserId: string
-  adminEmail: string
-  action: string
-  targetType: string
-  targetId: string
-  reason: string
-  beforeSnapshot: Record<string, unknown> | null
-  afterSnapshot: Record<string, unknown> | null
-  createdAt: number
-}
-
 export type UsersPage = Paginated<AdminUserListItem>
 export type PublishersPage = Paginated<Publisher>
 export type GenerationsPage = Paginated<AdminGenerationListItem>
 export type TransactionsPage = Paginated<BillingTransaction>
-export type ApiKeysPage = Paginated<AdminApiKeyListItem>
-export type AuditLogsPage = Paginated<AuditLog>
 
 export interface HeroCarouselSlide {
   id: string

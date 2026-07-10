@@ -27,12 +27,6 @@ export interface AdminProfile {
   balanceUsd: number
 }
 
-export type PricingPriceUnit =
-  | 'per_second'
-  | 'per_image'
-  | 'per_million_tokens'
-  | 'per_hour'
-
 export type GenerationStatus = 'queued' | 'processing' | 'completed' | 'succeeded' | 'failed'
 export type InvocationChannel = 'web' | 'api' | 'playground'
 export type TransactionStatus = 'pending' | 'completed' | 'failed' | 'expired' | 'partial'

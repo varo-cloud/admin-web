@@ -40,8 +40,6 @@ const routes: RouteRecordRaw[] = [
         name: 'billing-packages',
         component: () => import('@/views/billing/PackagesView.vue'),
       },
-      { path: 'api-keys', name: 'api-keys', component: () => import('@/views/api-keys/ApiKeysView.vue') },
-      { path: 'pricing', name: 'pricing', component: () => import('@/views/pricing/PricingView.vue') },
       {
         path: 'content/hero-carousel',
         name: 'hero-carousel',
@@ -53,7 +51,6 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/content/UploadView.vue'),
       },
       { path: 'settings', name: 'settings', component: () => import('@/views/settings/SettingsView.vue') },
-      { path: 'audit-logs', name: 'audit-logs', component: () => import('@/views/audit-logs/AuditLogsView.vue') },
     ],
   },
   { path: '/login', redirect: '/dashboard' },
