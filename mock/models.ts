@@ -15,6 +15,17 @@ function findBaseModel(slug: string) {
   return mockStore.baseModels.find((m) => m.slug === slug)
 }
 
+function enrichBaseModel(model: MockBaseModel) {
+  const publisher = model.publisher_id
+    ? mockStore.publishers.find((p) => p.seq_id === model.publisher_id)
+    : null
+  return {
+    ...model,
+    publisher_id: model.publisher_id,
+    publisher_slug: publisher?.slug ?? null,
+  }
+}
+
 function nextSeqId(items: { seq_id: number }[]) {
   return items.reduce((max, item) => Math.max(max, item.seq_id), 0) + 1
 }
@@ -24,13 +35,20 @@ export default [
   {
     url: '/api/admin/base-models',
     method: 'get',
-    response: ({ headers }: { headers: Record<string, string> }) => {
+    response: ({ query, headers }: { query: Record<string, string>; headers: Record<string, string> }) => {
       const auth = requireAdmin(headers)
       if (!auth.ok) return auth.response
-      const items = [...mockStore.baseModels].sort(
-        (a, b) => a.sort_order - b.sort_order || b.created_at.localeCompare(a.created_at),
-      )
-      return success(items)
+      let items = [...mockStore.baseModels]
+      if (query.publisher) {
+        const publisher = mockStore.publishers.find((p) => p.slug === query.publisher)
+        if (publisher) {
+          items = items.filter((m) => m.publisher_id === publisher.seq_id)
+        } else {
+          items = []
+        }
+      }
+      items.sort((a, b) => a.sort_order - b.sort_order || b.created_at.localeCompare(a.created_at))
+      return success(items.map(enrichBaseModel))
     },
   },
   {
@@ -43,6 +61,12 @@ export default [
       if (!slug) return fail('slug 必填', 422)
       if (mockStore.baseModels.some((m) => m.slug === slug)) return fail('slug 冲突', 409)
       const now = new Date().toISOString()
+      let publisherId: number | null = null
+      if (body.publisher_slug !== undefined && body.publisher_slug !== null) {
+        const publisher = mockStore.publishers.find((p) => p.slug === String(body.publisher_slug))
+        if (!publisher) return fail('Invalid publisher_slug', 400)
+        publisherId = publisher.seq_id
+      }
       const model: MockBaseModel = {
         seq_id: nextSeqId(mockStore.baseModels),
         slug,
@@ -53,11 +77,12 @@ export default [
         description: String(body.description ?? ''),
         active: body.active !== false,
         sort_order: Number(body.sort_order) || 0,
+        publisher_id: publisherId,
         created_at: now,
         updated_at: now,
       }
       mockStore.baseModels.push(model)
-      return success(model)
+      return success(enrichBaseModel(model))
     },
   },
   {
@@ -69,7 +94,7 @@ export default [
       const slug = decodeURIComponent(pathParam(url, /\/base-models\/([^/?]+)$/) ?? '')
       const model = findBaseModel(slug)
       if (!model) return fail('Model not found', 404)
-      return success(model)
+      return success(enrichBaseModel(model))
     },
   },
   {
@@ -90,6 +115,16 @@ export default [
       const idx = mockStore.baseModels.findIndex((m) => m.slug === slug)
       if (idx < 0) return fail('Model not found', 404)
       const prev = mockStore.baseModels[idx]
+      let publisherId = prev.publisher_id
+      if (body.publisher_slug !== undefined) {
+        if (body.publisher_slug === null) {
+          publisherId = null
+        } else {
+          const publisher = mockStore.publishers.find((p) => p.slug === String(body.publisher_slug))
+          if (!publisher) return fail('Invalid publisher_slug', 400)
+          publisherId = publisher.seq_id
+        }
+      }
       mockStore.baseModels[idx] = {
         ...prev,
         category: (body.category as MockBaseModel['category']) ?? prev.category,
@@ -99,9 +134,10 @@ export default [
         description: body.description !== undefined ? String(body.description) : prev.description,
         active: body.active !== undefined ? Boolean(body.active) : prev.active,
         sort_order: body.sort_order !== undefined ? Number(body.sort_order) : prev.sort_order,
+        publisher_id: publisherId,
         updated_at: new Date().toISOString(),
       }
-      return success(mockStore.baseModels[idx])
+      return success(enrichBaseModel(mockStore.baseModels[idx]))
     },
   },
   {

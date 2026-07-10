@@ -23,6 +23,7 @@ import {
   DocumentTextOutline,
   VideocamOutline,
   WalletOutline,
+  BusinessOutline,
   CloudUploadOutline,
 } from '@vicons/ionicons5'
 import { useAuthStore } from '@/stores/auth'
@@ -40,6 +41,7 @@ const menuOptions: MenuOption[] = [
   { label: '仪表盘', key: '/dashboard', icon: renderIcon(HomeOutline) },
   { label: '用户', key: '/users', icon: renderIcon(PeopleOutline) },
   { label: '模型', key: '/models', icon: renderIcon(CubeOutline) },
+  { label: '发布方', key: '/publishers', icon: renderIcon(BusinessOutline) },
   { label: '任务', key: '/generations', icon: renderIcon(FlashOutline) },
   { label: '充值订单', key: '/billing/transactions', icon: renderIcon(CardOutline) },
   { label: '充值档位', key: '/billing/packages', icon: renderIcon(WalletOutline) },
@@ -55,6 +57,7 @@ const activeKey = computed(() => {
   const path = route.path
   if (path.startsWith('/users')) return '/users'
   if (path.startsWith('/models')) return '/models'
+  if (path.startsWith('/publishers')) return '/publishers'
   if (path.startsWith('/generations')) return '/generations'
   if (path.startsWith('/billing')) return path
   if (path.startsWith('/content')) return path

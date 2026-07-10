@@ -22,6 +22,8 @@ interface ApiBaseModel {
   sort_order: number
   created_at: string
   updated_at: string
+  publisher_id?: number | null
+  publisher_slug?: string | null
 }
 
 interface ApiOffering {
@@ -71,6 +73,8 @@ function mapBaseModel(raw: ApiBaseModel): BaseModel {
     mode: raw.mode,
     rate: raw.rate ?? {},
     description: raw.description ?? '',
+    publisherId: raw.publisher_id ?? null,
+    publisherSlug: raw.publisher_slug ?? null,
     active: raw.active,
     sortOrder: raw.sort_order,
     createdAt: parseTimestamp(raw.created_at),
@@ -128,6 +132,7 @@ export function baseModelToPayload(model: Partial<BaseModel>): Record<string, un
   if (model.rate !== undefined) payload.rate = model.rate
   if (model.apiModelId !== undefined) payload.api_model_id = model.apiModelId
   if (model.description !== undefined) payload.description = model.description
+  if (model.publisherSlug !== undefined) payload.publisher_slug = model.publisherSlug
   if (model.active !== undefined) payload.active = model.active
   if (model.sortOrder !== undefined) payload.sort_order = model.sortOrder
   return payload
@@ -182,8 +187,8 @@ export async function fetchModels(_params?: { limit?: number }) {
   return { items, total: items.length, offset: 0, limit: items.length }
 }
 
-export async function fetchBaseModels(): Promise<BaseModel[]> {
-  const raw = await unwrap<ApiBaseModel[]>(http.get('/admin/base-models'))
+export async function fetchBaseModels(params?: { publisher?: string }): Promise<BaseModel[]> {
+  const raw = await unwrap<ApiBaseModel[]>(http.get('/admin/base-models', { params }))
   return raw.map(mapBaseModel)
 }
 

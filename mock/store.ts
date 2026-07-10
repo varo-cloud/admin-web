@@ -22,6 +22,20 @@ export interface MockBaseModel {
   description: string
   active: boolean
   sort_order: number
+  publisher_id: number | null
+  created_at: string
+  updated_at: string
+}
+
+export interface MockPublisher {
+  seq_id: number
+  slug: string
+  display_name: string
+  display_name_i18n: Record<string, string> | null
+  logo_url: string | null
+  description: string
+  active: boolean
+  sort_order: number
   created_at: string
   updated_at: string
 }
@@ -195,6 +209,33 @@ export const mockStore = {
     },
   ] as MockUser[],
 
+  publishers: [
+    {
+      seq_id: 1,
+      slug: 'bytedance',
+      display_name: 'ByteDance',
+      display_name_i18n: { 'en-US': 'ByteDance', 'zh-CN': '字节跳动' },
+      logo_url: 'https://cdn.example.com/logos/bytedance.svg',
+      description: 'ByteDance AI models',
+      active: true,
+      sort_order: 10,
+      created_at: isoDaysAgo(90),
+      updated_at: isoDaysAgo(2),
+    },
+    {
+      seq_id: 2,
+      slug: 'kuaishou',
+      display_name: 'Kuaishou',
+      display_name_i18n: { 'en-US': 'Kuaishou', 'zh-CN': '快手' },
+      logo_url: null,
+      description: '',
+      active: true,
+      sort_order: 20,
+      created_at: isoDaysAgo(60),
+      updated_at: isoDaysAgo(5),
+    },
+  ] as MockPublisher[],
+
   baseModels: [
     {
       seq_id: 1,
@@ -211,6 +252,7 @@ export const mockStore = {
       description: 'Hollywood-grade cinematic video model up to 4K.',
       active: true,
       sort_order: 10,
+      publisher_id: 1,
       created_at: isoDaysAgo(60),
       updated_at: isoDaysAgo(2),
     },

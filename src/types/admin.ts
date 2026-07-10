@@ -100,10 +100,31 @@ export interface BaseModel {
   mode: PricingMode
   rate: Record<string, unknown>
   description: string
+  publisherId: number | null
+  publisherSlug: string | null
   active: boolean
   sortOrder: number
   createdAt: number
   updatedAt: number
+}
+
+export interface Publisher {
+  seqId: number
+  slug: string
+  displayName: string
+  displayNameI18n: Record<string, string> | null
+  logoUrl: string | null
+  description: string
+  active: boolean
+  sortOrder: number
+  modelCount: number
+  createdAt: number
+  updatedAt: number
+}
+
+export interface AssignModelsResult {
+  updated: string[]
+  notFound: string[]
 }
 
 export interface OfferingExample {
@@ -283,6 +304,7 @@ export interface AuditLog {
 }
 
 export type UsersPage = Paginated<AdminUserListItem>
+export type PublishersPage = Paginated<Publisher>
 export type GenerationsPage = Paginated<AdminGenerationListItem>
 export type TransactionsPage = Paginated<BillingTransaction>
 export type ApiKeysPage = Paginated<AdminApiKeyListItem>
