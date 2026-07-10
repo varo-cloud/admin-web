@@ -1,6 +1,7 @@
 import { http, unwrap } from './http'
 import type { BaseModel, ModelCategory, Offering, PricingMode, ProviderRoute } from '@/types/admin'
 import type { LocalizedString } from '@/types'
+import { exampleToApiPayload, mapApiExample } from '@/utils/offeringExamples'
 import { localizedStringToPayload, mapApiLocalized } from '@/utils/locale'
 
 function parseTimestamp(value: string | number): number {
@@ -40,6 +41,7 @@ interface ApiOffering {
   faq: Array<Record<string, unknown>>
   faq_i18n: Record<string, unknown> | null
   input_schema: Record<string, unknown> | null
+  examples: Array<Record<string, unknown>>
   is_hot: boolean
   is_new: boolean
   active: boolean
@@ -94,6 +96,7 @@ function mapOffering(raw: ApiOffering): Offering {
     faq: raw.faq ?? [],
     faqI18n: raw.faq_i18n,
     inputSchema: raw.input_schema,
+    examples: (raw.examples ?? []).map(mapApiExample),
     isHot: raw.is_hot ?? false,
     isNew: raw.is_new ?? false,
     active: raw.active,
@@ -150,6 +153,9 @@ export function offeringToPayload(
   if (offering.faq !== undefined) payload.faq = offering.faq
   if (offering.faqI18n !== undefined) payload.faq_i18n = offering.faqI18n
   if (offering.inputSchema !== undefined) payload.input_schema = offering.inputSchema
+  if (offering.examples !== undefined) {
+    payload.examples = offering.examples.map(exampleToApiPayload)
+  }
   if (offering.isHot !== undefined) payload.is_hot = offering.isHot
   if (offering.isNew !== undefined) payload.is_new = offering.isNew
   if (offering.active !== undefined) payload.active = offering.active

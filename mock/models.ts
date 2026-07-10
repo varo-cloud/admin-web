@@ -166,6 +166,7 @@ export default [
         faq: (body.faq as MockOffering['faq']) ?? [],
         faq_i18n: (body.faq_i18n as Record<string, unknown> | null) ?? null,
         input_schema: (body.input_schema as Record<string, unknown> | null) ?? null,
+        examples: (body.examples as MockOffering['examples']) ?? [],
         is_hot: Boolean(body.is_hot),
         is_new: Boolean(body.is_new),
         active: body.active !== false,
@@ -229,6 +230,7 @@ export default [
         faq_i18n: body.faq_i18n !== undefined ? (body.faq_i18n as Record<string, unknown> | null) : prev.faq_i18n,
         input_schema:
           body.input_schema !== undefined ? (body.input_schema as Record<string, unknown> | null) : prev.input_schema,
+        examples: body.examples !== undefined ? (body.examples as MockOffering['examples']) : prev.examples,
         is_hot: body.is_hot !== undefined ? Boolean(body.is_hot) : prev.is_hot,
         is_new: body.is_new !== undefined ? Boolean(body.is_new) : prev.is_new,
         active: body.active !== undefined ? Boolean(body.active) : prev.active,

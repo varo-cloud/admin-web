@@ -21,6 +21,7 @@ import {
 } from 'naive-ui'
 import JsonEditor from '@/components/JsonEditor.vue'
 import LocaleTabs from '@/components/LocaleTabs.vue'
+import OfferingExamplesEditor from '@/components/OfferingExamplesEditor.vue'
 import {
   baseModelToPayload,
   createBaseModel,
@@ -38,9 +39,10 @@ import {
   updateOffering,
   updateProviderRoute,
 } from '@/api/models'
-import type { BaseModel, Offering, ProviderRoute } from '@/types/admin'
+import type { BaseModel, Offering, OfferingExample, ProviderRoute } from '@/types/admin'
 import type { ContentLocale } from '@/types'
 import { emptyLocalizedString, normalizeLocalizedString } from '@/utils/locale'
+import { validateExamplesList } from '@/utils/offeringExamples'
 
 const route = useRoute()
 const router = useRouter()
@@ -53,7 +55,16 @@ const saving = ref(false)
 const dirty = ref(false)
 const rateJson = ref('{}')
 const schemaJson = ref('{}')
+const editingExamples = ref<OfferingExample[]>([])
 const docsLocale = ref<ContentLocale>('en-US')
+
+const editingInputSchema = computed(() => {
+  try {
+    return JSON.parse(schemaJson.value || '{}') as Record<string, unknown>
+  } catch {
+    return {}
+  }
+})
 
 const baseForm = ref<Partial<BaseModel>>({
   slug: '',
@@ -201,6 +212,7 @@ function defaultOffering(): Partial<Offering> & { isCreating: boolean } {
     faq: [],
     faqI18n: null,
     inputSchema: {},
+    examples: [],
     isHot: false,
     isNew: false,
     active: true,
@@ -213,6 +225,7 @@ function openOfferingEditor(row?: Offering) {
   if (row) {
     editingOffering.value = { ...row, isCreating: false }
     schemaJson.value = JSON.stringify(row.inputSchema ?? {}, null, 2)
+    editingExamples.value = [...(row.examples ?? [])]
     readmeLocalized.value = row.readmeMdI18n
       ? normalizeLocalizedString(row.readmeMdI18n)
       : row.readmeMd
@@ -221,6 +234,7 @@ function openOfferingEditor(row?: Offering) {
   } else {
     editingOffering.value = defaultOffering()
     schemaJson.value = '{}'
+    editingExamples.value = []
     readmeLocalized.value = emptyLocalizedString()
   }
   offeringDrawer.value = true
@@ -238,6 +252,10 @@ async function saveOffering() {
     return message.error('Input Schema JSON 无效')
   }
 
+  const examplesErr = validateExamplesList(editingExamples.value)
+  if (examplesErr) return message.warning(examplesErr)
+
+  item.examples = editingExamples.value
   const i18n = localizedToI18n(readmeLocalized.value)
   item.readmeMdI18n = i18n
   item.readmeMd = readmeLocalized.value['en-US']?.trim() || null
@@ -361,6 +379,12 @@ const offeringColumns: DataTableColumns<Offering> = [
   },
   { title: '排序', key: 'sortOrder' },
   {
+    title: '示例',
+    key: 'examples',
+    width: 70,
+    render: (r) => (r.examples?.length ? `${r.examples.length} 条` : '—'),
+  },
+  {
     title: '操作',
     key: 'actions',
     render: (r) =>
@@ -474,7 +498,7 @@ onBeforeRouteLeave((_to, _from, next) => {
       </NTabPane>
     </NTabs>
 
-    <NDrawer v-model:show="offeringDrawer" :width="640" placement="right">
+    <NDrawer v-model:show="offeringDrawer" :width="720" placement="right">
       <NDrawerContent :title="editingOffering?.isCreating ? '创建 Offering' : '编辑 Offering'" closable>
         <NForm v-if="editingOffering" label-placement="top">
           <NFormItem label="Capability *">
@@ -522,6 +546,12 @@ onBeforeRouteLeave((_to, _from, next) => {
           </NFormItem>
           <NFormItem label="Input Schema">
             <JsonEditor v-model="schemaJson" />
+          </NFormItem>
+          <NFormItem label="Examples">
+            <OfferingExamplesEditor
+              v-model="editingExamples"
+              :input-schema="editingInputSchema"
+            />
           </NFormItem>
           <LocaleTabs v-model:locale="docsLocale">
             <NFormItem label="Readme">

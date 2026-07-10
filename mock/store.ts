@@ -43,6 +43,7 @@ export interface MockOffering {
   faq: Array<Record<string, unknown>>
   faq_i18n: Record<string, unknown> | null
   input_schema: Record<string, unknown> | null
+  examples: Array<Record<string, unknown>>
   is_hot: boolean
   is_new: boolean
   active: boolean
@@ -248,6 +249,21 @@ export const mockStore = {
         },
         required: ['prompt'],
       },
+      examples: [
+        {
+          id: 'cinematic-ocean',
+          title: 'Ocean waves at golden hour',
+          title_i18n: { 'zh-CN': '黄金时刻的海浪' },
+          description: 'Cinematic aerial shot with native audio.',
+          input: {
+            prompt: 'Slow aerial drone shot over ocean waves at golden hour, cinematic lighting',
+            duration: 5,
+          },
+          output_url: 'https://cdn.genflow.ai/examples/seedance-2.0/t2v-cinematic-ocean.mp4',
+          thumbnail_url: 'https://cdn.genflow.ai/examples/seedance-2.0/t2v-cinematic-ocean.jpg',
+          sort_order: 0,
+        },
+      ],
       is_hot: true,
       is_new: false,
       active: true,
@@ -272,6 +288,7 @@ export const mockStore = {
       faq: [],
       faq_i18n: null,
       input_schema: { type: 'object', properties: {} },
+      examples: [],
       is_hot: false,
       is_new: true,
       active: false,

@@ -106,6 +106,18 @@ export interface BaseModel {
   updatedAt: number
 }
 
+export interface OfferingExample {
+  id: string
+  title: string
+  titleI18n?: Record<string, string> | null
+  description?: string | null
+  descriptionI18n?: Record<string, string> | null
+  input: Record<string, unknown>
+  outputUrl?: string | null
+  thumbnailUrl?: string | null
+  sortOrder?: number | null
+}
+
 export interface Offering {
   seqId: number
   modelId: number
@@ -123,6 +135,7 @@ export interface Offering {
   faq: Array<Record<string, unknown>>
   faqI18n: Record<string, unknown> | null
   inputSchema: Record<string, unknown> | null
+  examples: OfferingExample[]
   isHot: boolean
   isNew: boolean
   active: boolean
