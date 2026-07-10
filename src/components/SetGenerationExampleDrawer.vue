@@ -144,8 +144,8 @@ async function save() {
             <NFormItem label="Input 预设值 *">
               <JsonEditor v-model="form.inputJson" :height="200" />
             </NFormItem>
-            <NFormItem label="输出 URL (output_url)">
-              <NInput v-model:value="form.outputUrl" />
+            <NFormItem label="输出 URL (output.url)">
+              <NInput v-model:value="form.outputUrl" placeholder="来自 generation output.url" />
             </NFormItem>
             <NFormItem label="缩略图 URL (thumbnail_url)">
               <NInput v-model:value="form.thumbnailUrl" placeholder="可选" />

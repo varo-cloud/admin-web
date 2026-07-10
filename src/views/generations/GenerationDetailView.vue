@@ -30,7 +30,10 @@ const canRefund = computed(
   () => detail.value && !detail.value.refunded && detail.value.costUsd > 0,
 )
 
-const outputUrl = computed(() => detail.value?.outputUrl ?? detail.value?.output?.url)
+const outputUrl = computed(() => detail.value?.output?.url ?? detail.value?.outputUrl)
+
+/** 设为示例时只使用 output.url，不使用顶层 output_url */
+const exampleOutputUrl = computed(() => detail.value?.output?.url)
 
 const isCompleted = computed(() => {
   const s = detail.value?.status
@@ -48,7 +51,7 @@ const isImageOutput = computed(
 )
 
 const canSetExample = computed(() => {
-  if (!detail.value || !isCompleted.value || !outputUrl.value) return false
+  if (!detail.value || !isCompleted.value || !exampleOutputUrl.value) return false
   return parseOfferingModelId(detail.value.model) != null
 })
 
@@ -152,12 +155,12 @@ function handleRefundRequest(reason: string) {
   />
 
   <SetGenerationExampleDrawer
-    v-if="detail && outputUrl"
+    v-if="detail && exampleOutputUrl"
     v-model:show="showSetExample"
     :model="detail.model"
     :task-id="detail.taskId"
     :input="detail.input"
-    :output-url="outputUrl"
+    :output-url="exampleOutputUrl"
   />
 </template>
 
