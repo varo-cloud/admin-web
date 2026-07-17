@@ -7,7 +7,6 @@ import {
   NForm,
   NFormItem,
   NInput,
-  NTag,
   NUpload,
   useDialog,
   useMessage,
@@ -32,10 +31,6 @@ function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`
-}
-
-function isPreviewableVideo(type: string): boolean {
-  return type.startsWith('video/')
 }
 
 async function copyText(text: string) {
@@ -121,17 +116,6 @@ const columns = computed<DataTableColumns<UploadRecord>>(() => [
     render: (row) => h('span', { class: 'url-text' }, row.key),
   },
   {
-    title: '预览',
-    key: 'preview',
-    width: 120,
-    render: (row) => {
-      if (isPreviewableVideo(row.contentType)) {
-        return h('video', { src: row.url, class: 'thumb', controls: true, muted: true })
-      }
-      return h(NTag, { size: 'small', bordered: false }, { default: () => '—' })
-    },
-  },
-  {
     title: '操作',
     key: 'actions',
     width: 140,
@@ -195,7 +179,7 @@ const columns = computed<DataTableColumns<UploadRecord>>(() => [
         :data="records"
         :bordered="false"
         size="small"
-        scroll-x="1200"
+        scroll-x="1080"
       />
       <p v-else class="empty-hint">暂无上传记录，上传后可在列表中拷贝链接或删除文件。</p>
     </NCard>
@@ -235,11 +219,5 @@ const columns = computed<DataTableColumns<UploadRecord>>(() => [
   display: flex;
   align-items: center;
   gap: 4px;
-}
-.thumb {
-  max-width: 96px;
-  max-height: 64px;
-  border-radius: 4px;
-  object-fit: cover;
 }
 </style>
