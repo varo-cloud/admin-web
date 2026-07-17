@@ -34,10 +34,6 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`
 }
 
-function isPreviewableImage(type: string): boolean {
-  return type.startsWith('image/')
-}
-
 function isPreviewableVideo(type: string): boolean {
   return type.startsWith('video/')
 }
@@ -129,9 +125,6 @@ const columns = computed<DataTableColumns<UploadRecord>>(() => [
     key: 'preview',
     width: 120,
     render: (row) => {
-      if (isPreviewableImage(row.contentType)) {
-        return h('img', { src: row.url, alt: row.filename, class: 'thumb' })
-      }
       if (isPreviewableVideo(row.contentType)) {
         return h('video', { src: row.url, class: 'thumb', controls: true, muted: true })
       }
