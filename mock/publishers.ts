@@ -79,6 +79,7 @@ export default [
         display_name: displayName,
         display_name_i18n: (body.display_name_i18n as Record<string, string> | null) ?? null,
         logo_url: (body.logo_url as string | null) ?? null,
+        cover_url: (body.cover_url as string | null) ?? null,
         description: String(body.description ?? ''),
         active: body.active !== false,
         sort_order: Number(body.sort_order) || 0,
@@ -127,6 +128,7 @@ export default [
             ? (body.display_name_i18n as Record<string, string> | null)
             : prev.display_name_i18n,
         logo_url: body.logo_url !== undefined ? (body.logo_url as string | null) : prev.logo_url,
+        cover_url: body.cover_url !== undefined ? (body.cover_url as string | null) : prev.cover_url,
         description: body.description !== undefined ? String(body.description) : prev.description,
         active: body.active !== undefined ? Boolean(body.active) : prev.active,
         sort_order: body.sort_order !== undefined ? Number(body.sort_order) : prev.sort_order,

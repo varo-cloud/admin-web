@@ -113,6 +113,7 @@ export interface Publisher {
   displayName: string
   displayNameI18n: Record<string, string> | null
   logoUrl: string | null
+  coverUrl: string | null
   description: string
   active: boolean
   sortOrder: number

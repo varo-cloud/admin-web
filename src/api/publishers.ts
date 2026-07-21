@@ -9,6 +9,7 @@ interface ApiPublisher {
   display_name: string
   display_name_i18n: Record<string, string> | null
   logo_url: string | null
+  cover_url: string | null
   description: string
   active: boolean
   sort_order: number
@@ -30,6 +31,7 @@ function mapPublisher(raw: ApiPublisher): Publisher {
     displayName: raw.display_name,
     displayNameI18n: raw.display_name_i18n,
     logoUrl: raw.logo_url,
+    coverUrl: raw.cover_url ?? null,
     description: raw.description ?? '',
     active: raw.active,
     sortOrder: raw.sort_order,
@@ -82,6 +84,7 @@ export function publisherToPayload(
   }
 
   if (publisher.logoUrl !== undefined) payload.logo_url = publisher.logoUrl
+  if (publisher.coverUrl !== undefined) payload.cover_url = publisher.coverUrl
   if (publisher.description !== undefined) payload.description = publisher.description
   if (publisher.active !== undefined) payload.active = publisher.active
   if (publisher.sortOrder !== undefined) payload.sort_order = publisher.sortOrder

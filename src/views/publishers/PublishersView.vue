@@ -86,6 +86,7 @@ function defaultPublisher(): PublisherForm {
     displayName: '',
     displayNameLocalized: emptyLocalizedString(),
     logoUrl: null,
+    coverUrl: null,
     description: '',
     active: true,
     sortOrder: 0,
@@ -274,6 +275,12 @@ const columns: DataTableColumns<Publisher> = [
     width: 70,
     render: (r) => (r.logoUrl ? '有' : '—'),
   },
+  {
+    title: 'Cover',
+    key: 'coverUrl',
+    width: 70,
+    render: (r) => (r.coverUrl ? '有' : '—'),
+  },
   { title: '关联模型', key: 'modelCount', width: 90 },
   { title: '排序', key: 'sortOrder', width: 70 },
   {
@@ -365,6 +372,9 @@ onMounted(load)
           </LocaleTabs>
           <NFormItem label="Logo URL">
             <NInput v-model:value="editing.logoUrl" placeholder="https://cdn.example.com/logo.svg" />
+          </NFormItem>
+          <NFormItem label="Cover URL">
+            <NInput v-model:value="editing.coverUrl" placeholder="https://cdn.example.com/cover.jpg" />
           </NFormItem>
           <NFormItem label="简介（Admin 用）">
             <NInput v-model:value="editing.description" type="textarea" :rows="3" />

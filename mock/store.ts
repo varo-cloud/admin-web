@@ -33,6 +33,7 @@ export interface MockPublisher {
   display_name: string
   display_name_i18n: Record<string, string> | null
   logo_url: string | null
+  cover_url: string | null
   description: string
   active: boolean
   sort_order: number
@@ -216,6 +217,7 @@ export const mockStore = {
       display_name: 'ByteDance',
       display_name_i18n: { 'en-US': 'ByteDance', 'zh-CN': '字节跳动' },
       logo_url: 'https://cdn.example.com/logos/bytedance.svg',
+      cover_url: 'https://cdn.example.com/covers/bytedance.jpg',
       description: 'ByteDance AI models',
       active: true,
       sort_order: 10,
@@ -228,6 +230,7 @@ export const mockStore = {
       display_name: 'Kuaishou',
       display_name_i18n: { 'en-US': 'Kuaishou', 'zh-CN': '快手' },
       logo_url: null,
+      cover_url: null,
       description: '',
       active: true,
       sort_order: 20,
