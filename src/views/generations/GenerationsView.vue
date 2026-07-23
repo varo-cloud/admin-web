@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { h, onMounted, ref } from 'vue'
+import { computed, h, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   NButton,
+  NCode,
   NDataTable,
+  NDrawer,
+  NDrawerContent,
   NInput,
   NSelect,
   NPagination,
@@ -11,13 +14,13 @@ import {
   useMessage,
   type DataTableColumns,
 } from 'naive-ui'
-import { fetchGenerations } from '@/api/generations'
+import { fetchGenerations, fetchGenerationUpstreamStatus } from '@/api/generations'
 import { fetchBaseModels, fetchOfferings } from '@/api/models'
 import StatusTag from '@/components/StatusTag.vue'
 import CopyText from '@/components/CopyText.vue'
 import { formatUsd } from '@/utils/currency'
 import { formatTimestamp } from '@/utils/time'
-import type { AdminGenerationListItem } from '@/types/admin'
+import type { AdminGenerationListItem, GenerationUpstreamStatus } from '@/types/admin'
 
 const router = useRouter()
 const message = useMessage()
@@ -32,6 +35,10 @@ const modelId = ref<string | null>(null)
 const email = ref('')
 const refunded = ref<string | null>(null)
 const modelOptions = ref<{ label: string; value: string }[]>([])
+
+const upstreamDrawerShow = ref(false)
+const upstreamLoading = ref(false)
+const upstreamStatus = ref<GenerationUpstreamStatus | null>(null)
 
 const statusOptions = [
   { label: '全部状态', value: '' },
@@ -88,6 +95,40 @@ onMounted(async () => {
   await load()
 })
 
+function extractUpstreamErrorMessage(body: unknown): string | null {
+  if (!body || typeof body !== 'object') return null
+  const error = (body as { error?: unknown }).error
+  if (!error || typeof error !== 'object') return null
+  const msg = (error as { message?: unknown }).message
+  return typeof msg === 'string' && msg ? msg : null
+}
+
+const upstreamErrorMessage = computed(() =>
+  upstreamStatus.value?.upstream
+    ? extractUpstreamErrorMessage(upstreamStatus.value.upstream.body)
+    : null,
+)
+
+const upstreamBodyJson = computed(() =>
+  upstreamStatus.value?.upstream?.body != null
+    ? JSON.stringify(upstreamStatus.value.upstream.body, null, 2)
+    : null,
+)
+
+async function openUpstreamStatus(taskId: string) {
+  upstreamDrawerShow.value = true
+  upstreamLoading.value = true
+  upstreamStatus.value = null
+  try {
+    upstreamStatus.value = await fetchGenerationUpstreamStatus(taskId)
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : '查询上游状态失败')
+    upstreamDrawerShow.value = false
+  } finally {
+    upstreamLoading.value = false
+  }
+}
+
 const columns: DataTableColumns<AdminGenerationListItem> = [
   { title: 'Task ID', key: 'taskId', render: (r) => h(CopyText, { text: r.taskId }) },
   {
@@ -107,7 +148,16 @@ const columns: DataTableColumns<AdminGenerationListItem> = [
     title: '操作',
     key: 'actions',
     render: (r) =>
-      h(NButton, { size: 'small', onClick: () => router.push(`/generations/${r.taskId}`) }, () => '查看'),
+      h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, [
+        h(NButton, { size: 'small', onClick: () => router.push(`/generations/${r.taskId}`) }, () => '查看'),
+        r.status === 'failed'
+          ? h(
+              NButton,
+              { size: 'small', type: 'warning', onClick: () => openUpstreamStatus(r.taskId) },
+              () => '上游失败',
+            )
+          : null,
+      ]),
   },
 ]
 </script>
@@ -137,5 +187,86 @@ const columns: DataTableColumns<AdminGenerationListItem> = [
         @update:page="load"
       />
     </NSpin>
+
+    <NDrawer v-model:show="upstreamDrawerShow" :width="520">
+      <NDrawerContent title="上游失败信息" closable>
+        <NSpin :show="upstreamLoading">
+          <template v-if="upstreamStatus">
+            <p class="meta-row">
+              Task ID: <span class="mono">{{ upstreamStatus.taskId }}</span>
+            </p>
+            <p class="meta-row">模型: {{ upstreamStatus.model }}</p>
+            <p class="meta-row">
+              我方状态: <StatusTag :status="upstreamStatus.ourStatus" />
+            </p>
+            <p class="meta-row">供应商: {{ upstreamStatus.providerUsed ?? '—' }}</p>
+            <p class="meta-row">路由供应商: {{ upstreamStatus.routeProvider ?? '—' }}</p>
+            <p class="meta-row">
+              供应商 Task ID:
+              <span class="mono">{{ upstreamStatus.providerTaskId ?? '—' }}</span>
+            </p>
+
+            <template v-if="upstreamStatus.upstream">
+              <p class="meta-row">
+                上游 HTTP: {{ upstreamStatus.upstream.httpStatus ?? '—' }}
+              </p>
+              <p v-if="upstreamStatus.upstream.url" class="meta-row">
+                上游 URL:
+                <a
+                  :href="upstreamStatus.upstream.url"
+                  target="_blank"
+                  rel="noopener"
+                  class="mono"
+                >{{ upstreamStatus.upstream.url }}</a>
+              </p>
+
+              <div v-if="upstreamErrorMessage" class="error-box">
+                {{ upstreamErrorMessage }}
+              </div>
+
+              <section v-if="upstreamBodyJson" class="body-section">
+                <h3 class="section-title">上游响应</h3>
+                <NCode :code="upstreamBodyJson" language="json" word-wrap />
+              </section>
+            </template>
+            <p v-else class="empty">暂无上游详情</p>
+          </template>
+        </NSpin>
+      </NDrawerContent>
+    </NDrawer>
   </div>
 </template>
+
+<style scoped>
+.meta-row {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: #334155;
+  word-break: break-all;
+}
+.error-box {
+  margin: 16px 0;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #9a3412;
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.body-section {
+  margin-top: 16px;
+}
+.section-title {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+}
+.empty {
+  color: #94a3b8;
+  font-size: 13px;
+}
+</style>

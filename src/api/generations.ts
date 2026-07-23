@@ -2,6 +2,7 @@ import { http, unwrap } from './http'
 import type {
   AdminGenerationDetail,
   AdminGenerationListItem,
+  GenerationUpstreamStatus,
   GenerationsPage,
   RefundResult,
 } from '@/types/admin'
@@ -112,5 +113,38 @@ export async function refundGeneration(taskId: string, reason: string): Promise<
     refundedUsd: raw.refunded_usd,
     newUserBalanceUsd: raw.new_user_balance_usd,
     billingRecordId: raw.billing_record_id,
+  }
+}
+
+export async function fetchGenerationUpstreamStatus(taskId: string): Promise<GenerationUpstreamStatus> {
+  const raw = await unwrap<{
+    task_id: string
+    model: string
+    our_status: string
+    provider_used?: string | null
+    provider_task_id?: string | null
+    route_provider?: string | null
+    upstream?: {
+      url?: string | null
+      http_status?: number | null
+      body?: unknown
+    } | null
+  }>(http.get(`/admin/generations/${encodeURIComponent(taskId)}/upstream-status`))
+
+  const upstream = raw.upstream
+  return {
+    taskId: raw.task_id,
+    model: raw.model,
+    ourStatus: raw.our_status,
+    providerUsed: raw.provider_used ?? null,
+    providerTaskId: raw.provider_task_id ?? null,
+    routeProvider: raw.route_provider ?? null,
+    upstream: upstream
+      ? {
+          url: upstream.url ?? null,
+          httpStatus: upstream.http_status ?? null,
+          body: upstream.body ?? null,
+        }
+      : null,
   }
 }

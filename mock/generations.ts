@@ -37,6 +37,37 @@ export default [
     },
   },
   {
+    url: /\/api\/admin\/generations\/([^/]+)\/upstream-status$/,
+    method: 'get',
+    response: ({ headers, url }: { headers: Record<string, string>; url: string }) => {
+      const auth = requireAdmin(headers)
+      if (!auth.ok) return auth.response
+      const taskId = decodeURIComponent(pathParam(url, /\/generations\/([^/]+)\/upstream-status/) ?? '')
+      const gen = mockStore.generations.find((g) => g.task_id === taskId)
+      if (!gen) return fail('任务不存在', 404)
+      if (gen.status !== 'failed') return fail('仅失败任务可查询上游状态', 400)
+
+      return success({
+        task_id: gen.task_id,
+        model: gen.model,
+        our_status: gen.status,
+        provider_used: 'sandbase',
+        provider_task_id: `sb-${gen.task_id.slice(-8)}`,
+        route_provider: 'sandbase',
+        upstream: {
+          url: `https://api.sandbase.example/v1/run/sb-${gen.task_id.slice(-8)}`,
+          http_status: 200,
+          body: {
+            error: {
+              type: 'generation_failed',
+              message: 'Upstream content moderation rejected the prompt',
+            },
+          },
+        },
+      })
+    },
+  },
+  {
     url: /\/api\/admin\/generations\/([^/]+)\/refund$/,
     method: 'post',
     response: ({

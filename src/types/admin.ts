@@ -217,6 +217,20 @@ export interface RefundResult {
   billingRecordId: string
 }
 
+export interface GenerationUpstreamStatus {
+  taskId: string
+  model: string
+  ourStatus: string
+  providerUsed: string | null
+  providerTaskId: string | null
+  routeProvider: string | null
+  upstream: {
+    url: string | null
+    httpStatus: number | null
+    body: unknown
+  } | null
+}
+
 export interface BillingTransaction {
   id: string
   userId?: string
