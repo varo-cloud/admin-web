@@ -73,6 +73,7 @@ const baseForm = ref<Partial<BaseModel>>({
   apiModelId: null,
   rate: {},
   description: '',
+  iconUrl: null,
   active: true,
   sortOrder: 0,
 })
@@ -202,7 +203,6 @@ function defaultOffering(): Partial<Offering> & { isCreating: boolean } {
     displayName: '',
     description: '',
     thumbnailUrl: null,
-    iconUrl: null,
     startingPriceUsd: null,
     standardPriceUsd: null,
     priceUnit: 'per_second',
@@ -471,6 +471,13 @@ onBeforeRouteLeave((_to, _from, next) => {
           <NFormItem label="内部备注">
             <textarea v-model="baseForm.description" class="textarea" rows="3" @input="markDirty" />
           </NFormItem>
+          <NFormItem label="图标 URL (icon_url)">
+            <NInput
+              v-model:value="baseForm.iconUrl"
+              placeholder="模型身份图标，同一基座共用"
+              @update:value="markDirty"
+            />
+          </NFormItem>
           <NFormItem label="Rate JSON *">
             <JsonEditor v-model="rateJson" @update:model-value="markDirty" />
           </NFormItem>
@@ -514,11 +521,11 @@ onBeforeRouteLeave((_to, _from, next) => {
           <NFormItem label="描述">
             <textarea v-model="editingOffering.description" class="textarea" rows="3" />
           </NFormItem>
-          <NFormItem label="缩略图 URL">
-            <NInput v-model:value="editingOffering.thumbnailUrl" />
-          </NFormItem>
-          <NFormItem label="图标 URL">
-            <NInput v-model:value="editingOffering.iconUrl" />
+          <NFormItem label="缩略图 URL (thumbnail_url)">
+            <NInput
+              v-model:value="editingOffering.thumbnailUrl"
+              placeholder="能力级封面，可与同基座其他 Offering 不同"
+            />
           </NFormItem>
           <NFormItem label="起价 USD">
             <NInputNumber v-model:value="editingOffering.startingPriceUsd" :step="0.001" />

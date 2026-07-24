@@ -99,6 +99,7 @@ export interface BaseModel {
   mode: PricingMode
   rate: Record<string, unknown>
   description: string
+  iconUrl: string | null
   publisherId: number | null
   publisherSlug: string | null
   active: boolean
@@ -146,7 +147,6 @@ export interface Offering {
   displayName: string
   description: string
   thumbnailUrl: string | null
-  iconUrl: string | null
   startingPriceUsd: number | null
   standardPriceUsd: number | null
   priceUnit: string | null

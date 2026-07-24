@@ -18,6 +18,7 @@ interface ApiBaseModel {
   mode: PricingMode
   rate: Record<string, unknown>
   description: string
+  icon_url: string | null
   active: boolean
   sort_order: number
   created_at: string
@@ -33,7 +34,6 @@ interface ApiOffering {
   display_name: string
   description: string
   thumbnail_url: string | null
-  icon_url: string | null
   starting_price_usd: number | null
   standard_price_usd: number | null
   price_unit: string | null
@@ -73,6 +73,7 @@ function mapBaseModel(raw: ApiBaseModel): BaseModel {
     mode: raw.mode,
     rate: raw.rate ?? {},
     description: raw.description ?? '',
+    iconUrl: raw.icon_url ?? null,
     publisherId: raw.publisher_id ?? null,
     publisherSlug: raw.publisher_slug ?? null,
     active: raw.active,
@@ -90,7 +91,6 @@ function mapOffering(raw: ApiOffering): Offering {
     displayName: raw.display_name,
     description: raw.description ?? '',
     thumbnailUrl: raw.thumbnail_url,
-    iconUrl: raw.icon_url,
     startingPriceUsd: raw.starting_price_usd,
     standardPriceUsd: raw.standard_price_usd,
     priceUnit: raw.price_unit,
@@ -132,6 +132,7 @@ export function baseModelToPayload(model: Partial<BaseModel>): Record<string, un
   if (model.rate !== undefined) payload.rate = model.rate
   if (model.apiModelId !== undefined) payload.api_model_id = model.apiModelId
   if (model.description !== undefined) payload.description = model.description
+  if (model.iconUrl !== undefined) payload.icon_url = model.iconUrl
   if (model.publisherSlug !== undefined) payload.publisher_slug = model.publisherSlug
   if (model.active !== undefined) payload.active = model.active
   if (model.sortOrder !== undefined) payload.sort_order = model.sortOrder
@@ -148,7 +149,6 @@ export function offeringToPayload(
   if (offering.displayName !== undefined) payload.display_name = offering.displayName
   if (offering.description !== undefined) payload.description = offering.description
   if (offering.thumbnailUrl !== undefined) payload.thumbnail_url = offering.thumbnailUrl
-  if (offering.iconUrl !== undefined) payload.icon_url = offering.iconUrl
   if (offering.startingPriceUsd !== undefined) payload.starting_price_usd = offering.startingPriceUsd
   if (offering.standardPriceUsd !== undefined) payload.standard_price_usd = offering.standardPriceUsd
   if (offering.priceUnit !== undefined) payload.price_unit = offering.priceUnit

@@ -75,6 +75,7 @@ export default [
         mode: body.mode as MockBaseModel['mode'],
         rate: (body.rate as Record<string, unknown>) ?? {},
         description: String(body.description ?? ''),
+        icon_url: (body.icon_url as string | null) ?? null,
         active: body.active !== false,
         sort_order: Number(body.sort_order) || 0,
         publisher_id: publisherId,
@@ -132,6 +133,7 @@ export default [
         rate: (body.rate as Record<string, unknown>) ?? prev.rate,
         api_model_id: body.api_model_id !== undefined ? (body.api_model_id as string | null) : prev.api_model_id,
         description: body.description !== undefined ? String(body.description) : prev.description,
+        icon_url: body.icon_url !== undefined ? (body.icon_url as string | null) : prev.icon_url,
         active: body.active !== undefined ? Boolean(body.active) : prev.active,
         sort_order: body.sort_order !== undefined ? Number(body.sort_order) : prev.sort_order,
         publisher_id: publisherId,
@@ -178,6 +180,7 @@ export default [
     response: ({ body, headers }: { body: Record<string, unknown>; headers: Record<string, string> }) => {
       const auth = requireAdmin(headers)
       if (!auth.ok) return auth.response
+      if (body.icon_url !== undefined) return fail('icon_url 已迁移至基座模型，Offering 不再接受该字段', 422)
       const modelId = Number(body.model_id)
       const capability = String(body.capability ?? '')
       if (!modelId || !capability) return fail('校验失败', 422)
@@ -192,7 +195,6 @@ export default [
         display_name: String(body.display_name ?? ''),
         description: String(body.description ?? ''),
         thumbnail_url: (body.thumbnail_url as string | null) ?? null,
-        icon_url: (body.icon_url as string | null) ?? null,
         starting_price_usd: (body.starting_price_usd as number | null) ?? null,
         standard_price_usd: (body.standard_price_usd as number | null) ?? null,
         price_unit: (body.price_unit as string | null) ?? null,
@@ -240,6 +242,7 @@ export default [
     }) => {
       const auth = requireAdmin(headers)
       if (!auth.ok) return auth.response
+      if (body.icon_url !== undefined) return fail('icon_url 已迁移至基座模型，Offering 不再接受该字段', 422)
       const seqId = Number(pathParam(url, /\/model-offerings\/(\d+)$/) ?? 0)
       const idx = mockStore.offerings.findIndex((o) => o.seq_id === seqId)
       if (idx < 0) return fail('Offering not found', 404)
@@ -250,7 +253,6 @@ export default [
         display_name: body.display_name !== undefined ? String(body.display_name) : prev.display_name,
         description: body.description !== undefined ? String(body.description) : prev.description,
         thumbnail_url: body.thumbnail_url !== undefined ? (body.thumbnail_url as string | null) : prev.thumbnail_url,
-        icon_url: body.icon_url !== undefined ? (body.icon_url as string | null) : prev.icon_url,
         starting_price_usd:
           body.starting_price_usd !== undefined ? (body.starting_price_usd as number | null) : prev.starting_price_usd,
         standard_price_usd:

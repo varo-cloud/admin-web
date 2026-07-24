@@ -20,6 +20,7 @@ export interface MockBaseModel {
   mode: 'video' | 'audio' | 'dashscope_video' | 'sandbase_video'
   rate: Record<string, unknown>
   description: string
+  icon_url: string | null
   active: boolean
   sort_order: number
   publisher_id: number | null
@@ -48,7 +49,6 @@ export interface MockOffering {
   display_name: string
   description: string
   thumbnail_url: string | null
-  icon_url: string | null
   starting_price_usd: number | null
   standard_price_usd: number | null
   price_unit: string | null
@@ -253,6 +253,7 @@ export const mockStore = {
         '4k': { no_video: 4.0, with_video: 2.4 },
       },
       description: 'Hollywood-grade cinematic video model up to 4K.',
+      icon_url: null,
       active: true,
       sort_order: 10,
       publisher_id: 1,
@@ -269,7 +270,6 @@ export const mockStore = {
       display_name: 'Seedance 2.0 Text-to-Video',
       description: 'Hollywood-grade cinematic text-to-video generation up to 4K.',
       thumbnail_url: 'https://picsum.photos/seed/seedance/400/225',
-      icon_url: null,
       starting_price_usd: 0.068,
       standard_price_usd: 0.09,
       price_unit: 'per_second',
@@ -323,7 +323,6 @@ export const mockStore = {
       display_name: 'Seedance 2.0 Image-to-Video',
       description: 'Image-to-video generation model.',
       thumbnail_url: null,
-      icon_url: null,
       starting_price_usd: 0.084,
       standard_price_usd: 0.1,
       price_unit: 'per_second',
