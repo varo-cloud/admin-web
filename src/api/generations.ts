@@ -5,6 +5,7 @@ import type {
   GenerationUpstreamStatus,
   GenerationsPage,
   RefundResult,
+  RehostResult,
 } from '@/types/admin'
 import type { GenerationStatus, InvocationChannel } from '@/types'
 
@@ -26,6 +27,7 @@ function mapListItem(raw: Record<string, unknown>): AdminGenerationListItem {
     invocationChannel: raw.invocation_channel as InvocationChannel,
     apiKeyPrefix: raw.api_key_prefix ? String(raw.api_key_prefix) : null,
     refunded: Boolean(raw.refunded),
+    errorCode: raw.error_code != null ? String(raw.error_code) : null,
     createdAt: Number(raw.created_at),
   }
 }
@@ -113,6 +115,16 @@ export async function refundGeneration(taskId: string, reason: string): Promise<
     refundedUsd: raw.refunded_usd,
     newUserBalanceUsd: raw.new_user_balance_usd,
     billingRecordId: raw.billing_record_id,
+  }
+}
+
+export async function rehostGeneration(taskId: string): Promise<RehostResult> {
+  const raw = await unwrap<{ task_id: string; status: string }>(
+    http.post(`/admin/generations/${encodeURIComponent(taskId)}/rehost`),
+  )
+  return {
+    taskId: raw.task_id,
+    status: raw.status,
   }
 }
 

@@ -11,10 +11,11 @@ import {
   NSelect,
   NPagination,
   NSpin,
+  useDialog,
   useMessage,
   type DataTableColumns,
 } from 'naive-ui'
-import { fetchGenerations, fetchGenerationUpstreamStatus } from '@/api/generations'
+import { fetchGenerations, fetchGenerationUpstreamStatus, rehostGeneration } from '@/api/generations'
 import { fetchBaseModels, fetchOfferings } from '@/api/models'
 import StatusTag from '@/components/StatusTag.vue'
 import CopyText from '@/components/CopyText.vue'
@@ -24,6 +25,7 @@ import type { AdminGenerationListItem, GenerationUpstreamStatus } from '@/types/
 
 const router = useRouter()
 const message = useMessage()
+const dialog = useDialog()
 const loading = ref(false)
 const items = ref<AdminGenerationListItem[]>([])
 const total = ref(0)
@@ -129,6 +131,27 @@ async function openUpstreamStatus(taskId: string) {
   }
 }
 
+function canRehost(row: AdminGenerationListItem): boolean {
+  return row.status === 'failed' && !row.refunded && row.errorCode === 'storage_failed'
+}
+
+function handleRehost(taskId: string) {
+  dialog.warning({
+    title: '重新入库',
+    content: '将从供应商重新拉取结果并写入存储（不退款）。确认继续？',
+    positiveText: '确认重新入库',
+    onPositiveClick: async () => {
+      try {
+        await rehostGeneration(taskId)
+        message.success('已调度重新入库')
+        await load()
+      } catch (e) {
+        message.error(e instanceof Error ? e.message : '重新入库失败')
+      }
+    },
+  })
+}
+
 const columns: DataTableColumns<AdminGenerationListItem> = [
   { title: 'Task ID', key: 'taskId', render: (r) => h(CopyText, { text: r.taskId }) },
   {
@@ -159,6 +182,13 @@ const columns: DataTableColumns<AdminGenerationListItem> = [
           },
           () => '检查上游',
         ),
+        canRehost(r)
+          ? h(
+              NButton,
+              { size: 'small', type: 'primary', onClick: () => handleRehost(r.taskId) },
+              () => '重新入库',
+            )
+          : null,
       ]),
   },
 ]
