@@ -188,6 +188,7 @@ export interface AdminGenerationListItem {
   invocationChannel: InvocationChannel
   apiKeyPrefix: string | null
   refunded: boolean
+  errorCode: string | null
   createdAt: number
 }
 
@@ -215,6 +216,11 @@ export interface RefundResult {
   refundedUsd: number
   newUserBalanceUsd: number
   billingRecordId: string
+}
+
+export interface RehostResult {
+  taskId: string
+  status: string
 }
 
 export interface GenerationUpstreamStatus {

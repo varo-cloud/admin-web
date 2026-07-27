@@ -12,7 +12,7 @@ import {
 import ConfirmReasonModal from '@/components/ConfirmReasonModal.vue'
 import SetGenerationExampleDrawer from '@/components/SetGenerationExampleDrawer.vue'
 import StatusTag from '@/components/StatusTag.vue'
-import { fetchGenerationDetail, refundGeneration } from '@/api/generations'
+import { fetchGenerationDetail, refundGeneration, rehostGeneration } from '@/api/generations'
 import { formatUsd } from '@/utils/currency'
 import { parseOfferingModelId } from '@/utils/offeringExamples'
 import type { AdminGenerationDetail } from '@/types/admin'
@@ -25,9 +25,18 @@ const loading = ref(true)
 const detail = ref<AdminGenerationDetail | null>(null)
 const showRefund = ref(false)
 const showSetExample = ref(false)
+const rehosting = ref(false)
 
 const canRefund = computed(
   () => detail.value && !detail.value.refunded && detail.value.costUsd > 0,
+)
+
+const canRehost = computed(
+  () =>
+    detail.value &&
+    detail.value.status === 'failed' &&
+    !detail.value.refunded &&
+    detail.value.errorCode === 'storage_failed',
 )
 
 const outputUrl = computed(() => detail.value?.outputUrl ?? detail.value?.output?.url)
@@ -92,6 +101,26 @@ function handleRefundRequest(reason: string) {
     },
   })
 }
+
+function handleRehost() {
+  dialog.warning({
+    title: '重新入库',
+    content: '将从供应商重新拉取结果并写入存储（不退款）。确认继续？',
+    positiveText: '确认重新入库',
+    onPositiveClick: async () => {
+      rehosting.value = true
+      try {
+        await rehostGeneration(taskId.value)
+        message.success('已调度重新入库')
+        await load()
+      } catch (e) {
+        message.error(e instanceof Error ? e.message : '重新入库失败')
+      } finally {
+        rehosting.value = false
+      }
+    },
+  })
+}
 </script>
 
 <template>
@@ -103,6 +132,7 @@ function handleRefundRequest(reason: string) {
           <p class="meta">
             <StatusTag :status="detail.status" />
             费用 {{ formatUsd(detail.costUsd) }} · 已退款 {{ detail.refunded ? '是' : '否' }}
+            <template v-if="detail.errorCode"> · 错误码 {{ detail.errorCode }}</template>
           </p>
           <p class="meta">
             用户 {{ detail.userEmail }} · 渠道 {{ detail.invocationChannel }} · 模型 {{ detail.model }}
@@ -113,6 +143,14 @@ function handleRefundRequest(reason: string) {
         <div class="header-actions">
           <NButton v-if="canSetExample" type="primary" @click="showSetExample = true">
             设为示例
+          </NButton>
+          <NButton
+            v-if="canRehost"
+            type="primary"
+            :loading="rehosting"
+            @click="handleRehost"
+          >
+            重新入库
           </NButton>
           <NButton v-if="canRefund" type="warning" @click="showRefund = true">退还费用</NButton>
         </div>
