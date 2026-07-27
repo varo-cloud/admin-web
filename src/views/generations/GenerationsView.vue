@@ -150,13 +150,15 @@ const columns: DataTableColumns<AdminGenerationListItem> = [
     render: (r) =>
       h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, [
         h(NButton, { size: 'small', onClick: () => router.push(`/generations/${r.taskId}`) }, () => '查看'),
-        r.status === 'failed'
-          ? h(
-              NButton,
-              { size: 'small', type: 'warning', onClick: () => openUpstreamStatus(r.taskId) },
-              () => '上游失败',
-            )
-          : null,
+        h(
+          NButton,
+          {
+            size: 'small',
+            type: r.status === 'failed' ? 'warning' : 'default',
+            onClick: () => openUpstreamStatus(r.taskId),
+          },
+          () => '检查上游',
+        ),
       ]),
   },
 ]
@@ -189,7 +191,7 @@ const columns: DataTableColumns<AdminGenerationListItem> = [
     </NSpin>
 
     <NDrawer v-model:show="upstreamDrawerShow" :width="520">
-      <NDrawerContent title="上游失败信息" closable>
+      <NDrawerContent title="上游状态" closable>
         <NSpin :show="upstreamLoading">
           <template v-if="upstreamStatus">
             <p class="meta-row">
