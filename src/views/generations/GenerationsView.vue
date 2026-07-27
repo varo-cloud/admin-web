@@ -72,7 +72,8 @@ async function load() {
       invocationChannel: channel.value || undefined,
       modelId: modelId.value || undefined,
       email: email.value || undefined,
-      refunded: refunded.value === '' ? undefined : refunded.value === 'true',
+      refunded:
+        refunded.value === 'true' ? true : refunded.value === 'false' ? false : undefined,
     })
     items.value = res.items
     total.value = res.total
