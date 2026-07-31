@@ -56,3 +56,32 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  notify:
+    needs: [build, deploy]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve status
+        id: status
+        run: |
+          BUILD="${{ needs.build.result }}"
+          DEPLOY="${{ needs.deploy.result }}"
+          if [[ "$BUILD" == "success" && "$DEPLOY" == "success" ]]; then
+            echo "value=success" >> "$GITHUB_OUTPUT"
+          elif [[ "$BUILD" == "cancelled" || "$DEPLOY" == "cancelled" ]]; then
+            echo "value=cancelled" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=failure" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Notify Lark
+        uses: ./.github/actions/notify-lark
+        with:
+          webhook_url: ${{ secrets.LARK_WEBHOOK_URL }}
+          environment: Production
+          status: ${{ steps.status.outputs.value }}
+          site_url: https://varo-cloud.github.io/admin-web/

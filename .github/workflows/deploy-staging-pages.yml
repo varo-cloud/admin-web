@@ -46,3 +46,12 @@ jobs:
           external_repository: varo-staging/admin-web
           publish_branch: gh-pages
           publish_dir: ./dist
+
+      - name: Notify Lark
+        if: always()
+        uses: ./.github/actions/notify-lark
+        with:
+          webhook_url: ${{ secrets.LARK_WEBHOOK_URL }}
+          environment: Staging
+          status: ${{ job.status }}
+          site_url: https://varo-staging.github.io/admin-web/

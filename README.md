@@ -74,6 +74,7 @@ VITE_USE_MOCK=true
 2. 创建 Fine-grained PAT 或 Classic PAT，需对 `varo-staging/admin-web` 具备 **Contents: Read and write** 权限
 3. 在 **varo-cloud/admin-web** → **Settings** → **Secrets and variables** → **Actions** 中添加：
    - `STAGING_DEPLOY_TOKEN` = 上一步的 PAT
+   - `LARK_WEBHOOK_URL` = 飞书/Lark 自定义机器人 Webhook（可选；Production / Staging 部署结束都会通知，未配置则跳过）
 4. 创建并 push `staging` 分支（或向已有 `staging` 分支 push），workflow 会自动运行
 
 Staging 构建注入的 API 地址：
@@ -96,6 +97,10 @@ npm run preview:pages
 - `VITE_USER_API_BASE_URL=https://api.varo.cloud/api` — User profile / auth
 
 本地预览时可在 `.env.production` 中配置相同变量后执行 `npm run preview:pages`。
+
+### 飞书 / Lark 部署通知
+
+在目标群添加「自定义机器人」，将 Webhook 写入仓库 Secret `LARK_WEBHOOK_URL`。Production / Staging 部署结束（成功或失败）都会发卡片，含状态、分支、提交与 Actions 链接。未配置时跳过通知、不影响部署。
 
 ## 环境变量
 

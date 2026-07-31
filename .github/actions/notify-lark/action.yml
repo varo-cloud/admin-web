@@ -1,0 +1,145 @@
+name: Notify Lark
+description: Send a Feishu/Lark webhook card for deploy success or failure
+
+inputs:
+  webhook_url:
+    description: Lark/Feishu custom bot webhook URL
+    required: true
+  environment:
+    description: Human-readable environment name (e.g. Production, Staging)
+    required: true
+  status:
+    description: Job/workflow status — success, failure, cancelled, or skipped
+    required: true
+  site_url:
+    description: Optional deployed site URL
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Send Lark notification
+      shell: bash
+      env:
+        WEBHOOK_URL: ${{ inputs.webhook_url }}
+        ENVIRONMENT: ${{ inputs.environment }}
+        STATUS: ${{ inputs.status }}
+        SITE_URL: ${{ inputs.site_url }}
+        REPO: ${{ github.repository }}
+        REF: ${{ github.ref_name }}
+        SHA: ${{ github.sha }}
+        ACTOR: ${{ github.actor }}
+        RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        WORKFLOW: ${{ github.workflow }}
+      run: |
+        set -euo pipefail
+
+        if [[ -z "${WEBHOOK_URL}" ]]; then
+          echo "LARK_WEBHOOK_URL secret is empty — skip notification"
+          exit 0
+        fi
+
+        case "${STATUS}" in
+          success)
+            TITLE="✅ 部署成功"
+            TEMPLATE="green"
+            STATUS_LABEL="成功"
+            ;;
+          cancelled)
+            TITLE="⚪️ 部署取消"
+            TEMPLATE="grey"
+            STATUS_LABEL="已取消"
+            ;;
+          skipped)
+            TITLE="⚪️ 部署跳过"
+            TEMPLATE="grey"
+            STATUS_LABEL="已跳过"
+            ;;
+          *)
+            TITLE="❌ 部署失败"
+            TEMPLATE="red"
+            STATUS_LABEL="失败"
+            ;;
+        esac
+
+        SHORT_SHA="${SHA:0:7}"
+        SITE_LINE=""
+        if [[ -n "${SITE_URL}" ]]; then
+          SITE_LINE="\\n**站点:** [${SITE_URL}](${SITE_URL})"
+        fi
+
+        # Feishu/Lark custom bot interactive card
+        PAYLOAD=$(jq -n \
+          --arg title "$TITLE" \
+          --arg template "$TEMPLATE" \
+          --arg env "$ENVIRONMENT" \
+          --arg status "$STATUS_LABEL" \
+          --arg repo "$REPO" \
+          --arg ref "$REF" \
+          --arg sha "$SHORT_SHA" \
+          --arg actor "$ACTOR" \
+          --arg run_url "$RUN_URL" \
+          --arg workflow "$WORKFLOW" \
+          --arg site_url "$SITE_URL" \
+          '{
+            msg_type: "interactive",
+            card: {
+              config: { wide_screen_mode: true },
+              header: {
+                template: $template,
+                title: { tag: "plain_text", content: $title }
+              },
+              elements: [
+                {
+                  tag: "div",
+                  text: {
+                    tag: "lark_md",
+                    content: (
+                      "**环境:** " + $env +
+                      "\n**状态:** " + $status +
+                      "\n**仓库:** " + $repo +
+                      "\n**分支:** " + $ref +
+                      "\n**提交:** `" + $sha + "`" +
+                      "\n**触发人:** " + $actor +
+                      "\n**工作流:** " + $workflow +
+                      (if $site_url != "" then "\n**站点:** [" + $site_url + "](" + $site_url + ")" else "" end)
+                    )
+                  }
+                },
+                {
+                  tag: "action",
+                  actions: [
+                    {
+                      tag: "button",
+                      text: { tag: "plain_text", content: "查看 Actions 日志" },
+                      type: "primary",
+                      url: $run_url
+                    }
+                  ]
+                }
+              ]
+            }
+          }')
+
+        HTTP_CODE=$(curl -sS -o /tmp/lark-response.json -w "%{http_code}" \
+          -X POST \
+          -H "Content-Type: application/json" \
+          -d "$PAYLOAD" \
+          "$WEBHOOK_URL")
+
+        echo "Lark webhook HTTP status: ${HTTP_CODE}"
+        cat /tmp/lark-response.json || true
+        echo
+
+        if [[ "$HTTP_CODE" != "200" ]]; then
+          echo "Warning: Lark webhook returned HTTP ${HTTP_CODE}"
+          exit 0
+        fi
+
+        # Feishu returns { "code": 0, ... } on success
+        CODE=$(jq -r '.code // empty' /tmp/lark-response.json 2>/dev/null || true)
+        if [[ -n "$CODE" && "$CODE" != "0" ]]; then
+          echo "Warning: Lark API code=${CODE}"
+          exit 0
+        fi
