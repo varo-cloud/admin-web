@@ -3,6 +3,7 @@ import type {
   AdminGenerationDetail,
   AdminGenerationListItem,
   GenerationUpstreamStatus,
+  GenerationUpstreamUsage,
   GenerationsPage,
   RefundResult,
   RehostResult,
@@ -15,6 +16,26 @@ function resolveModel(raw: Record<string, unknown>): string {
   return ''
 }
 
+function mapUpstreamCostUsd(raw: Record<string, unknown>): number | null {
+  if (raw.upstream_cost_usd == null) return null
+  const n = Number(raw.upstream_cost_usd)
+  return Number.isFinite(n) ? n : null
+}
+
+function mapUpstreamUsage(raw: Record<string, unknown>): GenerationUpstreamUsage | null {
+  const usage = raw.upstream_usage
+  if (usage == null || typeof usage !== 'object') return null
+  const u = usage as Record<string, unknown>
+  return {
+    totalTokens: Number(u.total_tokens ?? 0),
+    promptTokens: Number(u.prompt_tokens ?? 0),
+    completionTokens: Number(u.completion_tokens ?? 0),
+    cachedTokens: Number(u.cached_tokens ?? 0),
+    reasoningTokens: Number(u.reasoning_tokens ?? 0),
+    cacheCreationTokens: Number(u.cache_creation_tokens ?? 0),
+  }
+}
+
 function mapListItem(raw: Record<string, unknown>): AdminGenerationListItem {
   return {
     taskId: String(raw.task_id),
@@ -23,6 +44,7 @@ function mapListItem(raw: Record<string, unknown>): AdminGenerationListItem {
     model: resolveModel(raw),
     status: raw.status as GenerationStatus,
     costUsd: Number(raw.cost_usd),
+    upstreamCostUsd: mapUpstreamCostUsd(raw),
     duration: Number(raw.duration),
     invocationChannel: raw.invocation_channel as InvocationChannel,
     apiKeyPrefix: raw.api_key_prefix ? String(raw.api_key_prefix) : null,
@@ -56,7 +78,11 @@ function mapDetail(raw: Record<string, unknown>): AdminGenerationDetail {
     {}
   return {
     ...mapListItem(raw),
+    category: raw.category != null ? String(raw.category) : null,
+    capability: raw.capability != null ? String(raw.capability) : null,
     apiKeyId: raw.api_key_id ? String(raw.api_key_id) : null,
+    upstreamUsage: mapUpstreamUsage(raw),
+    costAttempts: raw.cost_attempts != null ? Number(raw.cost_attempts) : 0,
     input,
     output,
     outputUrl,

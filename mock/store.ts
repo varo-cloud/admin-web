@@ -85,8 +85,13 @@ export interface MockGeneration {
   user_id: string
   user_email: string
   model: string
+  category?: string
+  capability?: string
   status: 'queued' | 'processing' | 'completed' | 'succeeded' | 'failed'
   cost_usd: number
+  upstream_cost_usd: number | null
+  upstream_usage: Record<string, unknown> | null
+  cost_attempts: number
   duration: number
   invocation_channel: 'web' | 'api' | 'playground'
   api_key_id: string | null
@@ -363,8 +368,13 @@ export const mockStore = {
       user_id: 'user-001',
       user_email: 'alice@example.com',
       model: 'dreamina-seedance-2-0-260128',
+      category: 'video',
+      capability: 'text-to-video',
       status: 'failed',
       cost_usd: 2.0,
+      upstream_cost_usd: null,
+      upstream_usage: null,
+      cost_attempts: 3,
       duration: 5,
       invocation_channel: 'web',
       api_key_id: null,
@@ -380,8 +390,20 @@ export const mockStore = {
       user_id: 'user-002',
       user_email: 'bob@example.com',
       model: 'seedance-2.0/text-to-video',
+      category: 'video',
+      capability: 'text-to-video',
       status: 'succeeded',
       cost_usd: 0.36,
+      upstream_cost_usd: 0.22,
+      upstream_usage: {
+        total_tokens: 0,
+        prompt_tokens: 0,
+        completion_tokens: 0,
+        cached_tokens: 0,
+        reasoning_tokens: 0,
+        cache_creation_tokens: 0,
+      },
+      cost_attempts: 1,
       duration: 5,
       invocation_channel: 'api',
       api_key_id: 'key-001',

@@ -19,7 +19,7 @@ import { fetchGenerations, fetchGenerationUpstreamStatus, rehostGeneration } fro
 import { fetchBaseModels, fetchOfferings } from '@/api/models'
 import StatusTag from '@/components/StatusTag.vue'
 import CopyText from '@/components/CopyText.vue'
-import { formatUsd } from '@/utils/currency'
+import { formatUsd, formatUpstreamCostUsd } from '@/utils/currency'
 import { formatTimestamp } from '@/utils/time'
 import type { AdminGenerationListItem, GenerationUpstreamStatus } from '@/types/admin'
 
@@ -164,6 +164,11 @@ const columns: DataTableColumns<AdminGenerationListItem> = [
   { title: '模型', key: 'model' },
   { title: '状态', key: 'status', render: (r) => h(StatusTag, { status: r.status }) },
   { title: '费用', key: 'costUsd', render: (r) => formatUsd(r.costUsd) },
+  {
+    title: '上游成本',
+    key: 'upstreamCostUsd',
+    render: (r) => formatUpstreamCostUsd(r.upstreamCostUsd),
+  },
   { title: '时长', key: 'duration', render: (r) => `${r.duration}s` },
   { title: '渠道', key: 'invocationChannel' },
   { title: '已退款', key: 'refunded', render: (r) => (r.refunded ? '✓' : '—') },

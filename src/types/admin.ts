@@ -184,6 +184,8 @@ export interface AdminGenerationListItem {
   model: string
   status: GenerationStatus
   costUsd: number
+  /** 上游供应商已结算成本；null 表示尚未结算或不适用，不代表零成本 */
+  upstreamCostUsd: number | null
   duration: number
   invocationChannel: InvocationChannel
   apiKeyPrefix: string | null
@@ -203,8 +205,23 @@ export interface AdminUserGenerationItem {
   createdAt: number
 }
 
+export interface GenerationUpstreamUsage {
+  totalTokens: number
+  promptTokens: number
+  completionTokens: number
+  cachedTokens: number
+  reasoningTokens: number
+  cacheCreationTokens: number
+}
+
 export interface AdminGenerationDetail extends AdminGenerationListItem {
+  category: string | null
+  capability: string | null
   apiKeyId: string | null
+  /** 上游返回的原始 usage；视频/图片 SandBase 的 token 字段常为 0，勿据此做用量展示 */
+  upstreamUsage: GenerationUpstreamUsage | null
+  /** 结算轮询次数；达到 12 表示已停止重试 */
+  costAttempts: number
   input: Record<string, unknown>
   output: { type: string; url?: string } | null
   outputUrl?: string

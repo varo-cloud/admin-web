@@ -13,7 +13,7 @@ import ConfirmReasonModal from '@/components/ConfirmReasonModal.vue'
 import SetGenerationExampleDrawer from '@/components/SetGenerationExampleDrawer.vue'
 import StatusTag from '@/components/StatusTag.vue'
 import { fetchGenerationDetail, refundGeneration, rehostGeneration } from '@/api/generations'
-import { formatUsd } from '@/utils/currency'
+import { formatUsd, formatUpstreamCostUsd } from '@/utils/currency'
 import { parseOfferingModelId } from '@/utils/offeringExamples'
 import type { AdminGenerationDetail } from '@/types/admin'
 
@@ -70,6 +70,30 @@ const inputJson = computed(() =>
 const outputJson = computed(() =>
   detail.value?.output ? JSON.stringify(detail.value.output, null, 2) : null,
 )
+
+const upstreamCostLabel = computed(() =>
+  detail.value
+    ? formatUpstreamCostUsd(detail.value.upstreamCostUsd, detail.value.costAttempts)
+    : '—',
+)
+
+/** 视频/图片 SandBase 的 token 常为 0，不做用量展示；仅在有真实 token 时展示 */
+const showUpstreamUsage = computed(() => {
+  const usage = detail.value?.upstreamUsage
+  if (!usage) return false
+  const category = detail.value?.category
+  if (category === 'video' || category === 'image') {
+    return (
+      usage.totalTokens > 0 ||
+      usage.promptTokens > 0 ||
+      usage.completionTokens > 0 ||
+      usage.cachedTokens > 0 ||
+      usage.reasoningTokens > 0 ||
+      usage.cacheCreationTokens > 0
+    )
+  }
+  return true
+})
 
 async function load() {
   loading.value = true
@@ -131,14 +155,21 @@ function handleRehost() {
           <h1 class="page-title mono">Task: {{ detail.taskId }}</h1>
           <p class="meta">
             <StatusTag :status="detail.status" />
-            费用 {{ formatUsd(detail.costUsd) }} · 已退款 {{ detail.refunded ? '是' : '否' }}
+            费用 {{ formatUsd(detail.costUsd) }} · 上游成本 {{ upstreamCostLabel }} · 已退款
+            {{ detail.refunded ? '是' : '否' }}
             <template v-if="detail.errorCode"> · 错误码 {{ detail.errorCode }}</template>
           </p>
           <p class="meta">
             用户 {{ detail.userEmail }} · 渠道 {{ detail.invocationChannel }} · 模型 {{ detail.model }}
           </p>
+          <p v-if="detail.category || detail.capability" class="meta">
+            <template v-if="detail.category">分类 {{ detail.category }}</template>
+            <template v-if="detail.category && detail.capability"> · </template>
+            <template v-if="detail.capability">capability {{ detail.capability }}</template>
+          </p>
           <p v-if="detail.apiKeyPrefix" class="meta">API Key: {{ detail.apiKeyPrefix }}</p>
           <p v-if="detail.billingRecordId" class="meta">账单记录: {{ detail.billingRecordId }}</p>
+          <p class="meta">结算轮询: {{ detail.costAttempts }} / 12</p>
         </div>
         <div class="header-actions">
           <NButton v-if="canSetExample" type="primary" @click="showSetExample = true">
@@ -180,6 +211,18 @@ function handleRehost() {
             <p v-else class="empty">暂无输出</p>
           </section>
         </div>
+
+        <section v-if="showUpstreamUsage && detail.upstreamUsage" class="usage-section">
+          <h3 class="section-title">上游 usage</h3>
+          <div class="usage-grid">
+            <span>total_tokens</span><span>{{ detail.upstreamUsage.totalTokens }}</span>
+            <span>prompt_tokens</span><span>{{ detail.upstreamUsage.promptTokens }}</span>
+            <span>completion_tokens</span><span>{{ detail.upstreamUsage.completionTokens }}</span>
+            <span>cached_tokens</span><span>{{ detail.upstreamUsage.cachedTokens }}</span>
+            <span>reasoning_tokens</span><span>{{ detail.upstreamUsage.reasoningTokens }}</span>
+            <span>cache_creation_tokens</span><span>{{ detail.upstreamUsage.cacheCreationTokens }}</span>
+          </div>
+        </section>
       </NCard>
     </div>
   </NSpin>
@@ -248,5 +291,20 @@ function handleRehost() {
 }
 .empty {
   color: #94a3b8;
+}
+.usage-section {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #e2e8f0;
+}
+.usage-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 16px;
+  font-size: 13px;
+  color: #334155;
+}
+.usage-grid span:nth-child(odd) {
+  color: #64748b;
 }
 </style>
