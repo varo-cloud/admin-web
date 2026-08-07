@@ -124,9 +124,12 @@ function mapProviderRoute(raw: ApiProviderRoute): ProviderRoute {
   }
 }
 
-export function baseModelToPayload(model: Partial<BaseModel>): Record<string, unknown> {
+export function baseModelToPayload(
+  model: Partial<BaseModel>,
+  options: { includeSlug?: boolean } = {},
+): Record<string, unknown> {
   const payload: Record<string, unknown> = {}
-  if (model.slug !== undefined) payload.slug = model.slug
+  if (options.includeSlug && model.slug !== undefined) payload.slug = model.slug
   if (model.category !== undefined) payload.category = model.category
   if (model.mode !== undefined) payload.mode = model.mode
   if (model.rate !== undefined) payload.rate = model.rate

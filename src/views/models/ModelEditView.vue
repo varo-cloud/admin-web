@@ -176,7 +176,7 @@ async function saveBaseModel() {
   if (!validateBaseForm()) return
   saving.value = true
   try {
-    const payload = baseModelToPayload(baseForm.value)
+    const payload = baseModelToPayload(baseForm.value, { includeSlug: isNew.value })
     if (isNew.value) {
       const created = await createBaseModel(payload)
       message.success('基座模型创建成功，请继续配置 Offering 和 Provider Route')
