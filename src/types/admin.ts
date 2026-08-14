@@ -342,3 +342,146 @@ export interface AdminAssetUpload {
   sizeBytes: number
   key: string
 }
+
+export type CampaignState = 'draft' | 'active' | 'ended'
+export type SeedStatus = 'submitted' | 'under_review' | 'approved' | 'rejected' | 'cancelled'
+export type InvitationStatus = 'waiting_for_topup' | 'qualified' | 'winner' | 'no_reward' | 'expired'
+export type BonusLotStatus = 'active' | 'depleted' | 'expired' | 'frozen'
+export type BonusSource = 'seed_bonus' | 'inviter_reward' | 'invitee_reward' | 'manual'
+export type RiskLevel = 'none' | 'low' | 'med' | 'high'
+export type SeedReviewDecision = 'approve' | 'reject'
+
+export interface Campaign {
+  id: string
+  name: string
+  state: CampaignState
+  seedBonusCents: number
+  rewardInviterCents: number
+  rewardInviteeCents: number
+  bonusTtlDays: number
+  depositWindowDays: number
+  minDepositCents: number
+  seedCap: number
+  budgetCapCents: number
+  spentCents: number
+  startsAt: number | null
+  endsAt: number | null
+  createdAt: number
+}
+
+export interface CampaignPatch {
+  name?: string
+  state?: CampaignState
+  seedCap?: number
+  budgetCapCents?: number
+  bonusTtlDays?: number
+  depositWindowDays?: number
+  minDepositCents?: number
+  rewardInviterCents?: number
+  rewardInviteeCents?: number
+  startsAt?: string | null
+  endsAt?: string | null
+}
+
+export interface SeedCreator {
+  id: string
+  userId: string
+  campaignId: string
+  seedRank: number | null
+  status: SeedStatus
+  twitterUsername: string | null
+  twitterUrl: string | null
+  discordUsername: string | null
+  discordUserId: string | null
+  submittedAt: number | null
+  reviewerId: string | null
+  reviewedAt: number | null
+  rejectReason: string | null
+  riskLevel: RiskLevel
+  riskNote: string | null
+}
+
+export interface SeedReviewPayload {
+  decision: SeedReviewDecision
+  twitterVerified: boolean
+  discordVerified: boolean
+  rejectReason?: string | null
+}
+
+export interface SeedReviewResult {
+  status: SeedStatus
+  seedRank?: number | null
+  inviteCode?: string | null
+  idempotent?: boolean
+}
+
+export interface Invitation {
+  id: string
+  campaignId: string
+  seedId: string
+  inviterUserId: string
+  inviteeUserId: string
+  status: InvitationStatus
+  registeredAt: number | null
+  depositDeadline: number | null
+  qualifiedAt: number | null
+  firstTopupCents: number | null
+  firstTopupAt: number | null
+  isWinner: boolean
+}
+
+export interface BonusGrant {
+  id: string
+  userId: string
+  source: BonusSource
+  amountGrantedCents: number
+  amountRemainingCents: number
+  grantedAt: number | null
+  expiresAt: number | null
+  status: BonusLotStatus
+}
+
+export interface ActivityDashboard {
+  seedCap: number
+  seedApproved: number
+  seedPending: number
+  invitedUsers: number
+  qualified: number
+  winners: number
+  noReward: number
+  qualifiedTotal: number
+  seedIssuedCents: number
+  inviterIssuedCents: number
+  inviteeIssuedCents: number
+  manualIssuedCents: number
+  totalIssuedCents: number
+  budgetCapCents: number
+  spentCents: number
+  remainingBudgetCents: number
+}
+
+export interface BonusGrantPayload {
+  userId: string
+  cents: number
+  reason: string
+  idempotencyKey: string
+}
+
+export interface BonusGrantResult {
+  lotId: string | null
+  businessKey: string
+  idempotent?: boolean
+}
+
+export interface BonusLotStateResult {
+  lotId: string
+  status: BonusLotStatus
+}
+
+export interface RiskUpdateResult {
+  level: RiskLevel
+}
+
+export type SeedCreatorsPage = Paginated<SeedCreator>
+export type InvitationsPage = Paginated<Invitation>
+export type BonusGrantsPage = Paginated<BonusGrant>

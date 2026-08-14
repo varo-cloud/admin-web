@@ -22,6 +22,7 @@ import {
   WalletOutline,
   BusinessOutline,
   CloudUploadOutline,
+  GiftOutline,
 } from '@vicons/ionicons5'
 import { useAuthStore } from '@/stores/auth'
 import { NIcon } from 'naive-ui'
@@ -37,6 +38,18 @@ function renderIcon(icon: typeof HomeOutline) {
 const menuOptions: MenuOption[] = [
   { label: '仪表盘', key: '/dashboard', icon: renderIcon(HomeOutline) },
   { label: '用户', key: '/users', icon: renderIcon(PeopleOutline) },
+  {
+    label: '种子激励',
+    key: 'activity-group',
+    icon: renderIcon(GiftOutline),
+    children: [
+      { label: '活动看板', key: '/activity' },
+      { label: '种子审核', key: '/activity/seed-creators' },
+      { label: '邀请记录', key: '/activity/invitations' },
+      { label: 'Bonus 发放', key: '/activity/bonus-grants' },
+      { label: '活动配置', key: '/activity/campaigns' },
+    ],
+  },
   { label: '模型', key: '/models', icon: renderIcon(CubeOutline) },
   { label: '发布方', key: '/publishers', icon: renderIcon(BusinessOutline) },
   { label: '任务', key: '/generations', icon: renderIcon(FlashOutline) },
@@ -49,6 +62,13 @@ const menuOptions: MenuOption[] = [
 
 const activeKey = computed(() => {
   const path = route.path
+  if (path.startsWith('/activity')) {
+    if (path.startsWith('/activity/seed-creators')) return '/activity/seed-creators'
+    if (path.startsWith('/activity/invitations')) return '/activity/invitations'
+    if (path.startsWith('/activity/bonus-grants')) return '/activity/bonus-grants'
+    if (path.startsWith('/activity/campaigns')) return '/activity/campaigns'
+    return '/activity'
+  }
   if (path.startsWith('/users')) return '/users'
   if (path.startsWith('/models')) return '/models'
   if (path.startsWith('/publishers')) return '/publishers'
@@ -57,6 +77,10 @@ const activeKey = computed(() => {
   if (path.startsWith('/content')) return path
   return path
 })
+
+function goMenu(key: string) {
+  if (key.startsWith('/')) router.push(key)
+}
 
 function goHome() {
   window.location.href = '/'
@@ -70,7 +94,8 @@ function goHome() {
       <NMenu
         :value="activeKey"
         :options="menuOptions"
-        @update:value="(key) => router.push(String(key))"
+        :default-expanded-keys="['activity-group']"
+        @update:value="(key) => goMenu(String(key))"
       />
     </NLayoutSider>
     <NLayout>

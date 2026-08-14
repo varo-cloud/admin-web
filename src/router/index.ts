@@ -50,6 +50,27 @@ const routes: RouteRecordRaw[] = [
         name: 'upload',
         component: () => import('@/views/content/UploadView.vue'),
       },
+      { path: 'activity', name: 'activity-dashboard', component: () => import('@/views/activity/ActivityDashboardView.vue') },
+      {
+        path: 'activity/seed-creators',
+        name: 'activity-seed-creators',
+        component: () => import('@/views/activity/SeedCreatorsView.vue'),
+      },
+      {
+        path: 'activity/invitations',
+        name: 'activity-invitations',
+        component: () => import('@/views/activity/InvitationsView.vue'),
+      },
+      {
+        path: 'activity/bonus-grants',
+        name: 'activity-bonus-grants',
+        component: () => import('@/views/activity/BonusGrantsView.vue'),
+      },
+      {
+        path: 'activity/campaigns',
+        name: 'activity-campaigns',
+        component: () => import('@/views/activity/CampaignsView.vue'),
+      },
       { path: 'settings', name: 'settings', component: () => import('@/views/settings/SettingsView.vue') },
     ],
   },

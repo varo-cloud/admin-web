@@ -12,6 +12,7 @@ import billingMock from '../../mock/billing'
 import billingPackagesMock from '../../mock/billing-packages'
 import configMock from '../../mock/config'
 import heroCarouselMock from '../../mock/hero-carousel'
+import activityMock from '../../mock/activity'
 
 const mockModules: MockMethod[] = [
   ...authMock,
@@ -23,6 +24,7 @@ const mockModules: MockMethod[] = [
   ...billingPackagesMock,
   ...configMock,
   ...heroCarouselMock,
+  ...activityMock,
 ]
 
 function joinUrl(base: string, path: string): string {
