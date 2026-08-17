@@ -15,12 +15,11 @@ import {
   useMessage,
   type DataTableColumns,
 } from 'naive-ui'
-import { fetchCampaigns, fetchSeedCreators, reviewSeedCreator, updateSeedRisk } from '@/api/activity'
+import { fetchCampaigns, fetchSeedCreators, reviewSeedCreator } from '@/api/activity'
 import CopyText from '@/components/CopyText.vue'
-import RiskLevelModal from '@/components/RiskLevelModal.vue'
 import StatusTag from '@/components/StatusTag.vue'
 import { formatDateTime } from '@/utils/time'
-import type { RiskLevel, SeedCreator, SeedReviewDecision } from '@/types/admin'
+import type { SeedCreator, SeedReviewDecision } from '@/types/admin'
 
 const route = useRoute()
 const router = useRouter()
@@ -40,9 +39,6 @@ const twitterVerified = ref(true)
 const discordVerified = ref(true)
 const rejectReason = ref('')
 const submitting = ref(false)
-
-const riskShow = ref(false)
-const riskTarget = ref<SeedCreator | null>(null)
 
 const statusOptions = [
   { label: '全部', value: '' },
@@ -96,18 +92,6 @@ async function submitReview() {
   }
 }
 
-async function submitRisk(payload: { level: RiskLevel; note: string }) {
-  if (!riskTarget.value) return
-  try {
-    await updateSeedRisk(riskTarget.value.id, payload.level, payload.note)
-    message.success('风险已更新（连坐整个 Seed 名额）')
-    riskShow.value = false
-    await load()
-  } catch (e) {
-    message.error(e instanceof Error ? e.message : '更新失败')
-  }
-}
-
 const columns: DataTableColumns<SeedCreator> = [
   {
     title: '排名',
@@ -152,16 +136,11 @@ const columns: DataTableColumns<SeedCreator> = [
   {
     title: '操作',
     key: 'actions',
-    width: 220,
+    width: 160,
     render: (r) =>
       h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, [
-        r.status === 'submitted' || r.status === 'under_review'
-          ? h(NButton, { size: 'small', type: 'primary', onClick: () => openReview(r, 'approve') }, () => '通过')
-          : null,
-        r.status === 'submitted' || r.status === 'under_review'
-          ? h(NButton, { size: 'small', type: 'error', onClick: () => openReview(r, 'reject') }, () => '拒绝')
-          : null,
-        h(NButton, { size: 'small', onClick: () => { riskTarget.value = r; riskShow.value = true } }, () => '风险'),
+        h(NButton, { size: 'small', type: 'primary', onClick: () => openReview(r, 'approve') }, () => '通过'),
+        h(NButton, { size: 'small', type: 'error', onClick: () => openReview(r, 'reject') }, () => '拒绝'),
       ]),
   },
 ]
@@ -268,8 +247,6 @@ onMounted(async () => {
         {{ decision === 'approve' ? '确认通过并发放 $20 Bonus' : '确认拒绝' }}
       </NButton>
     </NModal>
-
-    <RiskLevelModal v-model:show="riskShow" title="标记 Seed 风险" @confirm="submitRisk" />
   </div>
 </template>
 
