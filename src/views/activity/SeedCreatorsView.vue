@@ -30,7 +30,7 @@ const items = ref<SeedCreator[]>([])
 const total = ref(0)
 const page = ref(1)
 const pageSize = 20
-const status = ref((route.query.status as string) || 'submitted')
+const status = ref((route.query.status as string) || '')
 const campaignId = ref((route.query.campaign_id as string) || '')
 
 const reviewShow = ref(false)
@@ -45,12 +45,12 @@ const riskShow = ref(false)
 const riskTarget = ref<SeedCreator | null>(null)
 
 const statusOptions = [
+  { label: '全部', value: '' },
   { label: '待审核', value: 'submitted' },
   { label: '审核中', value: 'under_review' },
   { label: '已通过', value: 'approved' },
   { label: '已拒绝', value: 'rejected' },
   { label: '已取消', value: 'cancelled' },
-  { label: '全部', value: '' },
 ]
 
 const campaignOptions = ref<{ label: string; value: string }[]>([{ label: '全部活动', value: '' }])
