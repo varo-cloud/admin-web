@@ -182,7 +182,10 @@ const genColumns: DataTableColumns<AdminUserGenerationItem> = [
         <NInputNumber v-model:value="adjustAmount" :min="0.01" :step="0.01" style="width: 100%" />
       </NFormItem>
       <NFormItem label="原因 *">
-        <textarea v-model="adjustReason" rows="3" class="reason-input" placeholder="至少 5 个字" />
+        <div class="reason-field">
+          <textarea v-model="adjustReason" rows="3" class="reason-input" placeholder="请填写调整原因" />
+          <p class="field-hint">至少填写 5 个字后，方可确认调整</p>
+        </div>
       </NFormItem>
     </NForm>
     <NButton type="primary" block :disabled="!canSubmitAdjust" :loading="adjustLoading" @click="confirmAdjust">
@@ -205,11 +208,19 @@ const genColumns: DataTableColumns<AdminUserGenerationItem> = [
   font-size: 12px;
   color: #94a3b8;
 }
+.reason-field {
+  width: 100%;
+}
 .reason-input {
   width: 100%;
   padding: 8px;
   border: 1px solid #d1d5db;
   border-radius: 6px;
   font-family: inherit;
+}
+.field-hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #94a3b8;
 }
 </style>
