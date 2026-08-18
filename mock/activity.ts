@@ -381,6 +381,28 @@ const lots: MockLot[] = [
   },
 ]
 
+export function purgeActivityForUser(userId: string) {
+  for (let i = seeds.length - 1; i >= 0; i--) {
+    const seed = seeds[i]
+    if (!seed) continue
+    if (seed.user_id === userId) {
+      seeds.splice(i, 1)
+    } else if (seed.reviewer_id === userId) {
+      seed.reviewer_id = null
+    }
+  }
+  for (let i = invites.length - 1; i >= 0; i--) {
+    const invite = invites[i]
+    if (!invite) continue
+    if (invite.inviter_user_id === userId || invite.invitee_user_id === userId) {
+      invites.splice(i, 1)
+    }
+  }
+  for (let i = lots.length - 1; i >= 0; i--) {
+    if (lots[i]?.user_id === userId) lots.splice(i, 1)
+  }
+}
+
 function currentCampaign(): MockCampaign | undefined {
   return campaigns
     .filter((c) => c.state !== 'draft')

@@ -7,6 +7,7 @@ import type {
   BalanceAdjustmentPayload,
   BalanceAdjustmentResult,
   BillingTransaction,
+  DeleteUserResult,
   UsersPage,
 } from '@/types/admin'
 import type { GenerationStatus, InvocationChannel, Paginated } from '@/types'
@@ -125,6 +126,19 @@ export async function adjustUserBalance(
     newBalanceUsd: raw.new_balance_usd,
     adjustmentUsd: raw.adjustment_usd,
     billingRecordId: raw.billing_record_id,
+  }
+}
+
+export async function deleteUser(userId: string, reason?: string): Promise<DeleteUserResult> {
+  const raw = await unwrap<{ id: string; email: string; deleted: boolean }>(
+    http.delete(`/admin/users/${encodeURIComponent(userId)}`, {
+      params: reason ? { reason } : undefined,
+    }),
+  )
+  return {
+    id: raw.id,
+    email: raw.email,
+    deleted: raw.deleted,
   }
 }
 

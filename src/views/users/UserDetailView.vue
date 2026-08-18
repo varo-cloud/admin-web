@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, h, onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import {
   NButton,
   NCard,
@@ -19,22 +19,30 @@ import {
 } from 'naive-ui'
 import {
   adjustUserBalance,
+  deleteUser,
   fetchUserDetail,
   fetchUserGenerations,
   fetchUserTransactions,
 } from '@/api/users'
+import DeleteUserModal from '@/components/DeleteUserModal.vue'
 import StatusTag from '@/components/StatusTag.vue'
+import { useAuthStore } from '@/stores/auth'
 import { formatUsd } from '@/utils/currency'
 import { formatTimestamp } from '@/utils/time'
 import type { AdminUserDetail, AdminUserGenerationItem, BillingTransaction } from '@/types/admin'
 import type { BalanceAdjustmentType } from '@/types'
 
 const route = useRoute()
+const router = useRouter()
 const message = useMessage()
 const dialog = useDialog()
+const auth = useAuthStore()
 const userId = computed(() => route.params.id as string)
 const loading = ref(true)
 const detail = ref<AdminUserDetail | null>(null)
+const showDelete = ref(false)
+const deleting = ref(false)
+const isSelf = computed(() => auth.profile?.id === userId.value)
 
 const transactions = ref<BillingTransaction[]>([])
 const generations = ref<AdminUserGenerationItem[]>([])
@@ -110,11 +118,45 @@ async function submitAdjust() {
   }
 }
 
+function openDelete() {
+  if (isSelf.value) {
+    message.warning('不能删除自己的账号')
+    return
+  }
+  showDelete.value = true
+}
+
+async function confirmDelete(reason?: string) {
+  deleting.value = true
+  try {
+    const email = detail.value?.email ?? userId.value
+    await deleteUser(userId.value, reason)
+    message.success(`已删除 ${email}`)
+    showDelete.value = false
+    await router.push('/users')
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : '删除失败')
+  } finally {
+    deleting.value = false
+  }
+}
+
 const txColumns: DataTableColumns<BillingTransaction> = [
   { title: 'ID', key: 'id' },
   { title: '金额', key: 'amountUsd', render: (r) => formatUsd(r.amountUsd) },
   { title: '状态', key: 'status', render: (r) => h(StatusTag, { status: r.status }) },
-  { title: '支付方式', key: 'paymentMethod', render: (r) => r.paymentMethod ?? '—' },
+  {
+    title: '支付方式',
+    key: 'paymentMethod',
+    render: (r) => {
+      const method = r.paymentMethod ?? '—'
+      if (r.type !== 'bonus' || !r.source) return method
+      return h('div', [
+        h('div', method),
+        h('div', { style: 'margin-top:2px;font-size:12px;color:#64748b' }, r.source),
+      ])
+    },
+  },
   { title: '创建时间', key: 'createdAt', render: (r) => formatTimestamp(r.createdAt) },
 ]
 
@@ -139,6 +181,7 @@ const genColumns: DataTableColumns<AdminUserGenerationItem> = [
           </p>
         </div>
         <div class="actions">
+          <NButton type="error" :disabled="isSelf" @click="openDelete">删除用户</NButton>
           <NButton type="primary" @click="showAdjust = true">调整余额</NButton>
         </div>
       </div>
@@ -194,6 +237,13 @@ const genColumns: DataTableColumns<AdminUserGenerationItem> = [
       确认调整
     </NButton>
   </NModal>
+
+  <DeleteUserModal
+    v-model:show="showDelete"
+    :email="detail?.email ?? ''"
+    :loading="deleting"
+    @confirm="confirmDelete"
+  />
 </template>
 
 <style scoped>

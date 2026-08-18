@@ -92,6 +92,12 @@ export interface BalanceAdjustmentResult {
   billingRecordId: string
 }
 
+export interface DeleteUserResult {
+  id: string
+  email: string
+  deleted: boolean
+}
+
 export type ModelCategory = 'video' | 'image' | 'llm'
 export type PricingMode = 'video' | 'audio' | 'dashscope_video' | 'sandbase_video'
 
@@ -264,6 +270,8 @@ export interface BillingTransaction {
   userEmail?: string
   amountUsd: number
   status: TransactionStatus
+  type?: string | null
+  source?: string | null
   provider?: PaymentProvider
   paymentMethod: string | null
   paymentDetail: string | null
