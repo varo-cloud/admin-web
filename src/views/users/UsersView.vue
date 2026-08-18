@@ -44,7 +44,7 @@ const statusOptions = [
 const sortOptions = [
   { label: '注册时间 ↓', value: '-created_at' },
   { label: '注册时间 ↑', value: 'created_at' },
-  { label: '余额 ↓', value: '-balance_usd' },
+  { label: 'Cash ↓', value: '-balance_usd' },
   { label: '最近活跃 ↓', value: '-last_active_at' },
 ]
 
@@ -69,7 +69,8 @@ const columns: DataTableColumns<AdminUserListItem> = [
     key: 'role',
     render: (row) => h(NTag, { size: 'small', type: row.role === 'admin' ? 'warning' : 'default' }, () => row.role),
   },
-  { title: '余额', key: 'balanceUsd', render: (row) => formatUsd(row.balanceUsd) },
+  { title: 'Cash', key: 'balanceUsd', render: (row) => formatUsd(row.balanceUsd) },
+  { title: 'Bonus', key: 'bonusUsd', render: (row) => formatUsd(row.bonusUsd) },
   { title: 'API Keys', key: 'apiKeysCount' },
   { title: '注册时间', key: 'createdAt', render: (row) => formatTimestamp(row.createdAt) },
   {

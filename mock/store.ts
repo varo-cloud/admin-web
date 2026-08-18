@@ -6,6 +6,7 @@ export interface MockUser {
   role: 'user' | 'admin'
   status: 'active' | 'suspended'
   balanceUsd: number
+  bonusUsd: number
   apiKeysCount: number
   createdAt: number
   lastActiveAt: number
@@ -175,6 +176,7 @@ export const mockStore = {
       role: 'admin' as const,
       status: 'active' as const,
       balanceUsd: 0,
+      bonusUsd: 0,
       apiKeysCount: 0,
       createdAt: daysAgo(90),
       lastActiveAt: now,
@@ -186,6 +188,7 @@ export const mockStore = {
       role: 'user' as const,
       status: 'active' as const,
       balanceUsd: 17.5,
+      bonusUsd: 3.0,
       apiKeysCount: 2,
       createdAt: daysAgo(30),
       lastActiveAt: daysAgo(0),
@@ -197,6 +200,7 @@ export const mockStore = {
       role: 'user' as const,
       status: 'active' as const,
       balanceUsd: 42.0,
+      bonusUsd: 10.0,
       apiKeysCount: 1,
       createdAt: daysAgo(15),
       lastActiveAt: daysAgo(1),
@@ -208,6 +212,7 @@ export const mockStore = {
       role: 'user' as const,
       status: 'suspended' as const,
       balanceUsd: 5.0,
+      bonusUsd: 0,
       apiKeysCount: 0,
       createdAt: daysAgo(60),
       lastActiveAt: daysAgo(10),

@@ -48,6 +48,7 @@ export default [
           role: u.role,
           status: u.status,
           balance_usd: u.balanceUsd,
+          bonus_usd: u.bonusUsd,
           api_keys_count: u.apiKeysCount,
           created_at: u.createdAt,
           last_active_at: u.lastActiveAt,
@@ -71,6 +72,7 @@ export default [
         role: user.role,
         status: user.status,
         balance_usd: user.balanceUsd,
+        bonus_usd: user.bonusUsd,
         balance_credits: Math.round(user.balanceUsd * mockStore.config.credits_per_usd),
         created_at: user.createdAt,
         api_keys: keys

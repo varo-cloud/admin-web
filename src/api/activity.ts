@@ -47,8 +47,8 @@ interface ApiCampaign {
   seed_bonus_cents: number
   reward_inviter_cents: number
   reward_invitee_cents: number
-  bonus_ttl_days: number
-  deposit_window_days: number
+  bonus_ttl_minutes: number
+  deposit_window_minutes: number
   min_deposit_cents: number
   seed_cap: number
   budget_cap_cents: number
@@ -66,8 +66,8 @@ function mapCampaign(raw: ApiCampaign): Campaign {
     seedBonusCents: asNumber(raw.seed_bonus_cents),
     rewardInviterCents: asNumber(raw.reward_inviter_cents),
     rewardInviteeCents: asNumber(raw.reward_invitee_cents),
-    bonusTtlDays: asNumber(raw.bonus_ttl_days),
-    depositWindowDays: asNumber(raw.deposit_window_days),
+    bonusTtlMinutes: asNumber(raw.bonus_ttl_minutes),
+    depositWindowMinutes: asNumber(raw.deposit_window_minutes),
     minDepositCents: asNumber(raw.min_deposit_cents),
     seedCap: asNumber(raw.seed_cap),
     budgetCapCents: asNumber(raw.budget_cap_cents),
@@ -160,8 +160,8 @@ export async function patchCampaign(campaignId: string, patch: CampaignPatch): P
   if (patch.state !== undefined) body.state = patch.state
   if (patch.seedCap !== undefined) body.seed_cap = patch.seedCap
   if (patch.budgetCapCents !== undefined) body.budget_cap_cents = patch.budgetCapCents
-  if (patch.bonusTtlDays !== undefined) body.bonus_ttl_days = patch.bonusTtlDays
-  if (patch.depositWindowDays !== undefined) body.deposit_window_days = patch.depositWindowDays
+  if (patch.bonusTtlMinutes !== undefined) body.bonus_ttl_minutes = patch.bonusTtlMinutes
+  if (patch.depositWindowMinutes !== undefined) body.deposit_window_minutes = patch.depositWindowMinutes
   if (patch.minDepositCents !== undefined) body.min_deposit_cents = patch.minDepositCents
   if (patch.rewardInviterCents !== undefined) body.reward_inviter_cents = patch.rewardInviterCents
   if (patch.rewardInviteeCents !== undefined) body.reward_invitee_cents = patch.rewardInviteeCents

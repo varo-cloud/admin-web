@@ -16,8 +16,8 @@ interface MockCampaign {
   seed_bonus_cents: number
   reward_inviter_cents: number
   reward_invitee_cents: number
-  bonus_ttl_days: number
-  deposit_window_days: number
+  bonus_ttl_minutes: number
+  deposit_window_minutes: number
   min_deposit_cents: number
   seed_cap: number
   budget_cap_cents: number
@@ -81,8 +81,8 @@ const CAMPAIGN_PATCH_FIELDS = new Set([
   'state',
   'seed_cap',
   'budget_cap_cents',
-  'bonus_ttl_days',
-  'deposit_window_days',
+  'bonus_ttl_minutes',
+  'deposit_window_minutes',
   'min_deposit_cents',
   'reward_inviter_cents',
   'reward_invitee_cents',
@@ -113,8 +113,8 @@ const campaigns: MockCampaign[] = [
     seed_bonus_cents: 2000,
     reward_inviter_cents: 1000,
     reward_invitee_cents: 1000,
-    bonus_ttl_days: 14,
-    deposit_window_days: 3,
+    bonus_ttl_minutes: 20160,
+    deposit_window_minutes: 4320,
     min_deposit_cents: 1000,
     seed_cap: 30,
     budget_cap_cents: 120000,
@@ -130,8 +130,8 @@ const campaigns: MockCampaign[] = [
     seed_bonus_cents: 2000,
     reward_inviter_cents: 1000,
     reward_invitee_cents: 1000,
-    bonus_ttl_days: 14,
-    deposit_window_days: 3,
+    bonus_ttl_minutes: 20160,
+    deposit_window_minutes: 4320,
     min_deposit_cents: 1000,
     seed_cap: 30,
     budget_cap_cents: 120000,
@@ -538,7 +538,7 @@ export default [
             amount_granted_cents: campaign.seed_bonus_cents,
             amount_remaining_cents: campaign.seed_bonus_cents,
             granted_at: new Date().toISOString(),
-            expires_at: iso(campaign.bonus_ttl_days),
+            expires_at: iso(0, campaign.bonus_ttl_minutes * 60 * 1000),
             status: 'active',
             business_key: `SEED_CREATOR_REWARD:${seed.user_id}:${campaign.id}`,
           })
@@ -736,7 +736,7 @@ export default [
         amount_granted_cents: cents,
         amount_remaining_cents: cents,
         granted_at: new Date().toISOString(),
-        expires_at: iso(campaign.bonus_ttl_days),
+        expires_at: iso(0, campaign.bonus_ttl_minutes * 60 * 1000),
         status: 'active',
         business_key: `MANUAL:${key}`,
       }

@@ -43,7 +43,9 @@ export interface AdminUserListItem {
   email: string
   role: UserRole
   status: UserStatus
+  /** Cash only（管理端 balance_usd） */
   balanceUsd: number
+  bonusUsd: number
   apiKeysCount: number
   createdAt: number
   lastActiveAt: number | null
@@ -63,7 +65,9 @@ export interface AdminUserDetail {
   email: string
   role: UserRole
   status: UserStatus
+  /** Cash only（管理端 balance_usd） */
   balanceUsd: number
+  bonusUsd: number
   balanceCredits: number
   createdAt: number
   apiKeys: AdminUserApiKey[]
@@ -358,8 +362,8 @@ export interface Campaign {
   seedBonusCents: number
   rewardInviterCents: number
   rewardInviteeCents: number
-  bonusTtlDays: number
-  depositWindowDays: number
+  bonusTtlMinutes: number
+  depositWindowMinutes: number
   minDepositCents: number
   seedCap: number
   budgetCapCents: number
@@ -374,8 +378,8 @@ export interface CampaignPatch {
   state?: CampaignState
   seedCap?: number
   budgetCapCents?: number
-  bonusTtlDays?: number
-  depositWindowDays?: number
+  bonusTtlMinutes?: number
+  depositWindowMinutes?: number
   minDepositCents?: number
   rewardInviterCents?: number
   rewardInviteeCents?: number

@@ -66,6 +66,13 @@ const inviteeUsd = computed({
   },
 })
 
+function minutesHint(minutes: number): string {
+  if (!Number.isFinite(minutes) || minutes <= 0) return ''
+  if (minutes % 1440 === 0) return `= ${minutes / 1440} 天`
+  if (minutes % 60 === 0) return `= ${minutes / 60} 小时`
+  return ''
+}
+
 function cloneCampaign(c: Campaign): Campaign {
   return { ...c }
 }
@@ -127,8 +134,10 @@ function buildPatch(): CampaignPatch | null {
   if (next.state !== prev.state) patch.state = next.state as CampaignState
   if (next.seedCap !== prev.seedCap) patch.seedCap = next.seedCap
   if (next.budgetCapCents !== prev.budgetCapCents) patch.budgetCapCents = next.budgetCapCents
-  if (next.bonusTtlDays !== prev.bonusTtlDays) patch.bonusTtlDays = next.bonusTtlDays
-  if (next.depositWindowDays !== prev.depositWindowDays) patch.depositWindowDays = next.depositWindowDays
+  if (next.bonusTtlMinutes !== prev.bonusTtlMinutes) patch.bonusTtlMinutes = next.bonusTtlMinutes
+  if (next.depositWindowMinutes !== prev.depositWindowMinutes) {
+    patch.depositWindowMinutes = next.depositWindowMinutes
+  }
   if (next.minDepositCents !== prev.minDepositCents) patch.minDepositCents = next.minDepositCents
   if (next.rewardInviterCents !== prev.rewardInviterCents) patch.rewardInviterCents = next.rewardInviterCents
   if (next.rewardInviteeCents !== prev.rewardInviteeCents) patch.rewardInviteeCents = next.rewardInviteeCents
@@ -190,7 +199,7 @@ async function submitSave() {
 
     <NAlert type="warning" title="运营注意" style="margin-bottom: 16px">
       <ul class="rules">
-        <li><code>ends_at</code> 要比最后一次绑定多留至少一个充值窗口（默认 3 天），上线后不要缩短。</li>
+        <li><code>ends_at</code> 要比最后一次绑定多留至少一个充值窗口（默认 4320 分钟 / 3 天），上线后不要缩短。</li>
         <li>排空 waiting / qualified 邀请前，不要把 <code>state</code> 从 active 改掉。</li>
         <li>收口用 <code>seed_cap</code>，不要用暂停 state——非 active 时首充资格会永久丢失。</li>
       </ul>
@@ -223,12 +232,16 @@ async function submitSave() {
           <NFormItem label="首充门槛 USD">
             <NInputNumber v-model:value="minDepositUsd" :min="0" :step="1" :precision="2" style="width: 200px" />
           </NFormItem>
-          <NFormItem label="充值窗口（天）">
-            <NInputNumber v-model:value="form.depositWindowDays" :min="1" :precision="0" style="width: 200px" />
+          <NFormItem label="充值窗口（分钟）">
+            <NInputNumber v-model:value="form.depositWindowMinutes" :min="1" :precision="0" style="width: 200px" />
+            <span class="hint">{{ minutesHint(form.depositWindowMinutes) }}</span>
           </NFormItem>
-          <NFormItem label="Bonus 有效期（天）">
-            <NInputNumber v-model:value="form.bonusTtlDays" :min="1" :precision="0" style="width: 200px" />
-            <span class="hint">实际过期 = min(领取 + TTL, ends_at)；延长 ends_at 不会延长已发 lot</span>
+          <NFormItem label="Bonus 有效期（分钟）">
+            <NInputNumber v-model:value="form.bonusTtlMinutes" :min="1" :precision="0" style="width: 200px" />
+            <span class="hint">
+              <template v-if="minutesHint(form.bonusTtlMinutes)">{{ minutesHint(form.bonusTtlMinutes) }} · </template>
+              实际过期 = min(领取 + TTL, ends_at)；延长 ends_at 不会延长已发 lot
+            </span>
           </NFormItem>
           <NFormItem label="开始时间">
             <NDatePicker v-model:value="form.startsAt" type="datetime" clearable />

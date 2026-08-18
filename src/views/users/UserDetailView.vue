@@ -134,7 +134,8 @@ const genColumns: DataTableColumns<AdminUserGenerationItem> = [
         <div>
           <h1 class="page-title">{{ detail.email }}</h1>
           <p class="meta">
-            余额 {{ formatUsd(detail.balanceUsd) }} · 注册 {{ formatTimestamp(detail.createdAt) }}
+            Cash {{ formatUsd(detail.balanceUsd) }} · Bonus {{ formatUsd(detail.bonusUsd) }} · 注册
+            {{ formatTimestamp(detail.createdAt) }}
           </p>
         </div>
         <div class="actions">
@@ -146,6 +147,7 @@ const genColumns: DataTableColumns<AdminUserGenerationItem> = [
         <NTabPane name="overview" tab="概览">
           <NCard>
             <p>角色：{{ detail.role }} · 状态：{{ detail.status }}</p>
+            <p>Cash：{{ formatUsd(detail.balanceUsd) }} · Bonus：{{ formatUsd(detail.bonusUsd) }}</p>
             <p class="credits-hint">内部 credits: {{ detail.balanceCredits }}（1 USD = 100 credits）</p>
             <p>收藏模型：{{ detail.modelPreferences.favourites.join(', ') || '—' }}</p>
           </NCard>
@@ -173,7 +175,7 @@ const genColumns: DataTableColumns<AdminUserGenerationItem> = [
 
   <NModal v-model:show="showAdjust" preset="card" title="调整余额" style="width: 440px">
     <p>用户：{{ detail?.email }}</p>
-    <p>当前余额：{{ formatUsd(detail?.balanceUsd ?? 0) }}</p>
+    <p>当前 Cash：{{ formatUsd(detail?.balanceUsd ?? 0) }} · Bonus：{{ formatUsd(detail?.bonusUsd ?? 0) }}</p>
     <NForm label-placement="top">
       <NFormItem label="调整类型">
         <NSelect v-model:value="adjustType" :options="typeOptions" />
