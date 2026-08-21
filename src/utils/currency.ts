@@ -2,6 +2,19 @@ export function formatUsd(value: number): string {
   return `$${value.toFixed(2)}`
 }
 
+/** 活动金额：1 cent = $0.01 */
+export function centsToUsd(cents: number): number {
+  return cents / 100
+}
+
+export function usdToCents(usd: number): number {
+  return Math.round(usd * 100)
+}
+
+export function formatCents(cents: number): string {
+  return formatUsd(centsToUsd(cents))
+}
+
 /**
  * 上游成本展示：有数值显示金额；null 时结合 cost_attempts 判断结算状态。
  * 列表接口无 cost_attempts 时，null 显示为「—」。

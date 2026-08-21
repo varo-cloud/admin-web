@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { h, onMounted, ref } from 'vue'
+import { computed, h, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   NInput,
@@ -12,7 +12,9 @@ import {
   useMessage,
   type DataTableColumns,
 } from 'naive-ui'
-import { fetchUsers } from '@/api/users'
+import { deleteUser, fetchUsers } from '@/api/users'
+import DeleteUserModal from '@/components/DeleteUserModal.vue'
+import { useAuthStore } from '@/stores/auth'
 import { formatUsd } from '@/utils/currency'
 import { formatRelativeTimestamp, formatTimestamp } from '@/utils/time'
 import CopyText from '@/components/CopyText.vue'
@@ -20,6 +22,7 @@ import type { AdminUserListItem } from '@/types/admin'
 
 const router = useRouter()
 const message = useMessage()
+const auth = useAuthStore()
 const loading = ref(false)
 const items = ref<AdminUserListItem[]>([])
 const total = ref(0)
@@ -30,6 +33,9 @@ const q = ref('')
 const role = ref<string | null>(null)
 const status = ref<string | null>(null)
 const sort = ref('-created_at')
+
+const pendingDelete = ref<AdminUserListItem | null>(null)
+const deleting = ref(false)
 
 const roleOptions = [
   { label: '全部角色', value: '' },
@@ -44,11 +50,47 @@ const statusOptions = [
 const sortOptions = [
   { label: '注册时间 ↓', value: '-created_at' },
   { label: '注册时间 ↑', value: 'created_at' },
-  { label: '余额 ↓', value: '-balance_usd' },
+  { label: 'Cash ↓', value: '-balance_usd' },
   { label: '最近活跃 ↓', value: '-last_active_at' },
 ]
 
-const columns: DataTableColumns<AdminUserListItem> = [
+const showDelete = computed({
+  get: () => pendingDelete.value != null,
+  set: (v: boolean) => {
+    if (!v) pendingDelete.value = null
+  },
+})
+
+function isSelf(row: AdminUserListItem) {
+  return auth.profile?.id === row.id
+}
+
+function openDelete(row: AdminUserListItem) {
+  if (isSelf(row)) {
+    message.warning('不能删除自己的账号')
+    return
+  }
+  pendingDelete.value = row
+}
+
+async function confirmDelete(reason?: string) {
+  const target = pendingDelete.value
+  if (!target) return
+  deleting.value = true
+  try {
+    await deleteUser(target.id, reason)
+    message.success(`已删除 ${target.email}`)
+    pendingDelete.value = null
+    if (items.value.length === 1 && page.value > 1) page.value -= 1
+    await load()
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : '删除失败')
+  } finally {
+    deleting.value = false
+  }
+}
+
+const columns = computed<DataTableColumns<AdminUserListItem>>(() => [
   {
     title: 'Email',
     key: 'email',
@@ -69,7 +111,8 @@ const columns: DataTableColumns<AdminUserListItem> = [
     key: 'role',
     render: (row) => h(NTag, { size: 'small', type: row.role === 'admin' ? 'warning' : 'default' }, () => row.role),
   },
-  { title: '余额', key: 'balanceUsd', render: (row) => formatUsd(row.balanceUsd) },
+  { title: 'Cash', key: 'balanceUsd', render: (row) => formatUsd(row.balanceUsd) },
+  { title: 'Bonus', key: 'bonusUsd', render: (row) => formatUsd(row.bonusUsd) },
   { title: 'API Keys', key: 'apiKeysCount' },
   { title: '注册时间', key: 'createdAt', render: (row) => formatTimestamp(row.createdAt) },
   {
@@ -80,10 +123,24 @@ const columns: DataTableColumns<AdminUserListItem> = [
   {
     title: '操作',
     key: 'actions',
+    width: 160,
     render: (row) =>
-      h(NButton, { size: 'small', onClick: () => router.push(`/users/${row.id}`) }, { default: () => '查看' }),
+      h('div', { style: 'display:flex;gap:8px;align-items:center' }, [
+        h(NButton, { size: 'small', onClick: () => router.push(`/users/${row.id}`) }, { default: () => '查看' }),
+        h(
+          NButton,
+          {
+            size: 'small',
+            type: 'error',
+            disabled: isSelf(row) || (deleting.value && pendingDelete.value?.id !== row.id),
+            loading: deleting.value && pendingDelete.value?.id === row.id,
+            onClick: () => openDelete(row),
+          },
+          { default: () => '删除' },
+        ),
+      ]),
   },
-]
+])
 
 async function load() {
   loading.value = true
@@ -137,5 +194,12 @@ onMounted(load)
         @update:page="load"
       />
     </NSpin>
+
+    <DeleteUserModal
+      v-model:show="showDelete"
+      :email="pendingDelete?.email ?? ''"
+      :loading="deleting"
+      @confirm="confirmDelete"
+    />
   </div>
 </template>

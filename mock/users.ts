@@ -1,4 +1,5 @@
 import type { MockMethod } from 'vite-plugin-mock'
+import { purgeActivityForUser } from './activity'
 import { addAuditLog, mockStore } from './store'
 import { fail, paginate, pathParam, requireAdmin, success } from './_util'
 
@@ -48,6 +49,7 @@ export default [
           role: u.role,
           status: u.status,
           balance_usd: u.balanceUsd,
+          bonus_usd: u.bonusUsd,
           api_keys_count: u.apiKeysCount,
           created_at: u.createdAt,
           last_active_at: u.lastActiveAt,
@@ -71,6 +73,7 @@ export default [
         role: user.role,
         status: user.status,
         balance_usd: user.balanceUsd,
+        bonus_usd: user.bonusUsd,
         balance_credits: Math.round(user.balanceUsd * mockStore.config.credits_per_usd),
         created_at: user.createdAt,
         api_keys: keys
@@ -164,6 +167,55 @@ export default [
         user.status = body.status
       }
       return success({ id: user.id, status: user.status })
+    },
+  },
+  {
+    url: /\/api\/admin\/users\/([^/?]+)(?:\?.*)?$/,
+    method: 'delete',
+    response: ({
+      headers,
+      url,
+      query,
+    }: {
+      headers: Record<string, string>
+      url: string
+      query: Record<string, string>
+    }) => {
+      const auth = requireAdmin(headers)
+      if (!auth.ok) return auth.response
+
+      const userId = pathParam(url, /\/users\/([^/?]+)$/)
+      if (!userId) return fail('Invalid user_id', 400)
+
+      const user = mockStore.users.find((u) => u.id === userId)
+      if (!user) return fail('用户不存在', 404)
+      if (user.id === auth.user.id) return fail('Cannot delete your own account', 400)
+      if (user.role === 'admin' && mockStore.users.filter((u) => u.role === 'admin').length <= 1) {
+        return fail('Cannot delete the last admin', 400)
+      }
+
+      const reason =
+        query?.reason?.trim() || new URL(url, 'http://local').searchParams.get('reason') || null
+
+      addAuditLog({
+        admin_user_id: auth.user.id,
+        admin_email: auth.user.email,
+        action: 'user_delete',
+        target_type: 'user',
+        target_id: user.id,
+        reason: reason ?? '',
+        before_snapshot: { id: user.id, email: user.email, role: user.role },
+        after_snapshot: null,
+      })
+
+      mockStore.users = mockStore.users.filter((u) => u.id !== userId)
+      mockStore.apiKeys = mockStore.apiKeys.filter((k) => k.user_id !== userId)
+      mockStore.transactions = mockStore.transactions.filter((t) => t.user_id !== userId)
+      mockStore.generations = mockStore.generations.filter((g) => g.user_id !== userId)
+      delete mockStore.billingRecords[userId]
+      purgeActivityForUser(userId)
+
+      return success({ id: user.id, email: user.email, deleted: true })
     },
   },
   {

@@ -5,8 +5,18 @@ export function toMillis(timestamp: number): number {
   return timestamp < 1e12 ? timestamp * SECOND_MS : timestamp
 }
 
-export function formatTimestamp(timestamp: number): string {
-  const date = new Date(toMillis(timestamp))
+export function parseTimestamp(value: string | number | null | undefined): number | null {
+  if (value == null || value === '') return null
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null
+  const ms = Date.parse(value)
+  return Number.isFinite(ms) ? ms : null
+}
+
+export function formatTimestamp(timestamp: number | string | null | undefined): string {
+  if (timestamp == null || timestamp === '') return ''
+  const parsed = typeof timestamp === 'number' ? timestamp : parseTimestamp(timestamp)
+  if (parsed == null) return ''
+  const date = new Date(toMillis(parsed))
   if (Number.isNaN(date.getTime())) return ''
   const year = date.getFullYear()
   const month = date.getMonth() + 1
@@ -14,6 +24,15 @@ export function formatTimestamp(timestamp: number): string {
   const hour = String(date.getHours()).padStart(2, '0')
   const minute = String(date.getMinutes()).padStart(2, '0')
   return `${year}/${month}/${day} ${hour}:${minute}`
+}
+
+export function formatDateTime(value: string | number | null | undefined): string {
+  return formatTimestamp(value) || '—'
+}
+
+export function toIsoString(timestamp: number | null | undefined): string | undefined {
+  if (timestamp == null || !Number.isFinite(timestamp)) return undefined
+  return new Date(toMillis(timestamp)).toISOString()
 }
 
 export function formatRelativeTimestamp(timestamp: number): string {

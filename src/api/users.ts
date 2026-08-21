@@ -7,6 +7,7 @@ import type {
   BalanceAdjustmentPayload,
   BalanceAdjustmentResult,
   BillingTransaction,
+  DeleteUserResult,
   UsersPage,
 } from '@/types/admin'
 import type { GenerationStatus, InvocationChannel, Paginated } from '@/types'
@@ -17,6 +18,7 @@ interface ApiUserListItem {
   role: 'user' | 'admin'
   status: 'active' | 'suspended'
   balance_usd: number
+  bonus_usd?: number
   api_keys_count: number
   created_at: number
   last_active_at: number | null
@@ -29,6 +31,7 @@ function mapUserListItem(raw: ApiUserListItem): AdminUserListItem {
     role: raw.role,
     status: raw.status,
     balanceUsd: raw.balance_usd,
+    bonusUsd: raw.bonus_usd ?? 0,
     apiKeysCount: raw.api_keys_count,
     createdAt: raw.created_at,
     lastActiveAt: raw.last_active_at,
@@ -63,6 +66,7 @@ export async function fetchUserDetail(userId: string): Promise<AdminUserDetail> 
     role: 'user' | 'admin'
     status: 'active' | 'suspended'
     balance_usd: number
+    bonus_usd?: number
     balance_credits: number
     created_at: number
     api_keys: {
@@ -82,6 +86,7 @@ export async function fetchUserDetail(userId: string): Promise<AdminUserDetail> 
     role: raw.role,
     status: raw.status,
     balanceUsd: raw.balance_usd,
+    bonusUsd: raw.bonus_usd ?? 0,
     balanceCredits: raw.balance_credits,
     createdAt: raw.created_at,
     apiKeys: raw.api_keys.map((k) => ({
@@ -121,6 +126,19 @@ export async function adjustUserBalance(
     newBalanceUsd: raw.new_balance_usd,
     adjustmentUsd: raw.adjustment_usd,
     billingRecordId: raw.billing_record_id,
+  }
+}
+
+export async function deleteUser(userId: string, reason?: string): Promise<DeleteUserResult> {
+  const raw = await unwrap<{ id: string; email: string; deleted: boolean }>(
+    http.delete(`/admin/users/${encodeURIComponent(userId)}`, {
+      params: reason ? { reason } : undefined,
+    }),
+  )
+  return {
+    id: raw.id,
+    email: raw.email,
+    deleted: raw.deleted,
   }
 }
 

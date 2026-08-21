@@ -62,6 +62,7 @@ function resolveUserByEmail(email: string) {
       role: 'user',
       status: 'active',
       balanceUsd: 3,
+      bonusUsd: 0,
       apiKeysCount: 0,
       createdAt: Date.now(),
       lastActiveAt: Date.now(),

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, h, onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import {
   NButton,
   NCard,
@@ -19,22 +19,30 @@ import {
 } from 'naive-ui'
 import {
   adjustUserBalance,
+  deleteUser,
   fetchUserDetail,
   fetchUserGenerations,
   fetchUserTransactions,
 } from '@/api/users'
+import DeleteUserModal from '@/components/DeleteUserModal.vue'
 import StatusTag from '@/components/StatusTag.vue'
+import { useAuthStore } from '@/stores/auth'
 import { formatUsd } from '@/utils/currency'
 import { formatTimestamp } from '@/utils/time'
 import type { AdminUserDetail, AdminUserGenerationItem, BillingTransaction } from '@/types/admin'
 import type { BalanceAdjustmentType } from '@/types'
 
 const route = useRoute()
+const router = useRouter()
 const message = useMessage()
 const dialog = useDialog()
+const auth = useAuthStore()
 const userId = computed(() => route.params.id as string)
 const loading = ref(true)
 const detail = ref<AdminUserDetail | null>(null)
+const showDelete = ref(false)
+const deleting = ref(false)
+const isSelf = computed(() => auth.profile?.id === userId.value)
 
 const transactions = ref<BillingTransaction[]>([])
 const generations = ref<AdminUserGenerationItem[]>([])
@@ -110,11 +118,45 @@ async function submitAdjust() {
   }
 }
 
+function openDelete() {
+  if (isSelf.value) {
+    message.warning('不能删除自己的账号')
+    return
+  }
+  showDelete.value = true
+}
+
+async function confirmDelete(reason?: string) {
+  deleting.value = true
+  try {
+    const email = detail.value?.email ?? userId.value
+    await deleteUser(userId.value, reason)
+    message.success(`已删除 ${email}`)
+    showDelete.value = false
+    await router.push('/users')
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : '删除失败')
+  } finally {
+    deleting.value = false
+  }
+}
+
 const txColumns: DataTableColumns<BillingTransaction> = [
   { title: 'ID', key: 'id' },
   { title: '金额', key: 'amountUsd', render: (r) => formatUsd(r.amountUsd) },
   { title: '状态', key: 'status', render: (r) => h(StatusTag, { status: r.status }) },
-  { title: '支付方式', key: 'paymentMethod', render: (r) => r.paymentMethod ?? '—' },
+  {
+    title: '支付方式',
+    key: 'paymentMethod',
+    render: (r) => {
+      const method = r.paymentMethod ?? '—'
+      if (r.type !== 'bonus' || !r.source) return method
+      return h('div', [
+        h('div', method),
+        h('div', { style: 'margin-top:2px;font-size:12px;color:#64748b' }, r.source),
+      ])
+    },
+  },
   { title: '创建时间', key: 'createdAt', render: (r) => formatTimestamp(r.createdAt) },
 ]
 
@@ -134,10 +176,12 @@ const genColumns: DataTableColumns<AdminUserGenerationItem> = [
         <div>
           <h1 class="page-title">{{ detail.email }}</h1>
           <p class="meta">
-            余额 {{ formatUsd(detail.balanceUsd) }} · 注册 {{ formatTimestamp(detail.createdAt) }}
+            Cash {{ formatUsd(detail.balanceUsd) }} · Bonus {{ formatUsd(detail.bonusUsd) }} · 注册
+            {{ formatTimestamp(detail.createdAt) }}
           </p>
         </div>
         <div class="actions">
+          <NButton type="error" :disabled="isSelf" @click="openDelete">删除用户</NButton>
           <NButton type="primary" @click="showAdjust = true">调整余额</NButton>
         </div>
       </div>
@@ -146,6 +190,7 @@ const genColumns: DataTableColumns<AdminUserGenerationItem> = [
         <NTabPane name="overview" tab="概览">
           <NCard>
             <p>角色：{{ detail.role }} · 状态：{{ detail.status }}</p>
+            <p>Cash：{{ formatUsd(detail.balanceUsd) }} · Bonus：{{ formatUsd(detail.bonusUsd) }}</p>
             <p class="credits-hint">内部 credits: {{ detail.balanceCredits }}（1 USD = 100 credits）</p>
             <p>收藏模型：{{ detail.modelPreferences.favourites.join(', ') || '—' }}</p>
           </NCard>
@@ -173,7 +218,7 @@ const genColumns: DataTableColumns<AdminUserGenerationItem> = [
 
   <NModal v-model:show="showAdjust" preset="card" title="调整余额" style="width: 440px">
     <p>用户：{{ detail?.email }}</p>
-    <p>当前余额：{{ formatUsd(detail?.balanceUsd ?? 0) }}</p>
+    <p>当前 Cash：{{ formatUsd(detail?.balanceUsd ?? 0) }} · Bonus：{{ formatUsd(detail?.bonusUsd ?? 0) }}</p>
     <NForm label-placement="top">
       <NFormItem label="调整类型">
         <NSelect v-model:value="adjustType" :options="typeOptions" />
@@ -182,13 +227,23 @@ const genColumns: DataTableColumns<AdminUserGenerationItem> = [
         <NInputNumber v-model:value="adjustAmount" :min="0.01" :step="0.01" style="width: 100%" />
       </NFormItem>
       <NFormItem label="原因 *">
-        <textarea v-model="adjustReason" rows="3" class="reason-input" placeholder="至少 5 个字" />
+        <div class="reason-field">
+          <textarea v-model="adjustReason" rows="3" class="reason-input" placeholder="请填写调整原因" />
+          <p class="field-hint">至少填写 5 个字后，方可确认调整</p>
+        </div>
       </NFormItem>
     </NForm>
     <NButton type="primary" block :disabled="!canSubmitAdjust" :loading="adjustLoading" @click="confirmAdjust">
       确认调整
     </NButton>
   </NModal>
+
+  <DeleteUserModal
+    v-model:show="showDelete"
+    :email="detail?.email ?? ''"
+    :loading="deleting"
+    @confirm="confirmDelete"
+  />
 </template>
 
 <style scoped>
@@ -205,11 +260,19 @@ const genColumns: DataTableColumns<AdminUserGenerationItem> = [
   font-size: 12px;
   color: #94a3b8;
 }
+.reason-field {
+  width: 100%;
+}
 .reason-input {
   width: 100%;
   padding: 8px;
   border: 1px solid #d1d5db;
   border-radius: 6px;
   font-family: inherit;
+}
+.field-hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #94a3b8;
 }
 </style>

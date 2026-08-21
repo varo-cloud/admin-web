@@ -9,6 +9,8 @@ export function mapBillingTransaction(raw: Record<string, unknown>): BillingTran
     userEmail: raw.user_email != null ? String(raw.user_email) : undefined,
     amountUsd: Number(raw.amount_usd),
     status: raw.status as TransactionStatus,
+    type: raw.type != null ? String(raw.type) : null,
+    source: raw.source != null ? String(raw.source) : null,
     provider: raw.provider != null ? (raw.provider as PaymentProvider) : undefined,
     paymentMethod: raw.payment_method != null ? String(raw.payment_method) : null,
     paymentDetail: raw.payment_detail != null ? String(raw.payment_detail) : null,
